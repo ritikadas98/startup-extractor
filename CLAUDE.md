@@ -71,23 +71,17 @@ NEXT, in order:
    knowledge graph (`knowledge/` — rule detectors: same_investor, competitor via Layer-3
    alternatives[], same_business_model, same_stage_quarter; AI-assisted same_market).
 4. Phase D: `scheduler/daily_runner.py` + wire remaining steps into `.github/workflows/daily.yml`.
-5. Phase E: reports (daily briefing, weekly trends, monthly, job-target scoring 100-pt rubric in PLAN).
-   Includes **roles finder**: user gives filters at run time (role keywords, location,
-   stage, sector, funding recency) → query companies table (freshly funded = hiring
-   signal) → fetch live openings per company: detect ATS from `careers_url` (Greenhouse
-   `boards-api.greenhouse.io`, Lever `api.lever.co/v0/postings`, Ashby — all public JSON,
-   no auth) with a flash-extraction fallback for plain careers pages; store in a
-   `job_roles` table, rank via the 100-pt rubric. NO LinkedIn scraping (ToS). CLI:
-   `find-roles --role "product" --location bangalore --funded-within 90`.
-   Layer 1 already extracts `hiring_signals` per article (is_hiring, roles_mentioned,
-   team_expansion_notes) — added 2026-07-11, so articles analyzed before that lack it.
-   Deferred to this phase: Telegram job channels + Reddit as conversation sources
-   (both have free APIs); X/Twitter rejected — read access starts at $200/month.
-   **JOB_MODE toggle** (user requirement 2026-07-11): a single setting (env/config) that
-   disables the job-search features when not job hunting — skips Layer 7 generation,
-   role sections in reports, roles-finder scheduling. Layers 1-6/8 (learning core) and
-   hiring_signals (free, inside L1) keep running. Re-enabling backfills missing L7s
-   automatically via the resume-safe upsert.
+5. Phase E: **roles finder + JOB_MODE DONE 2026-07-11** (`jobs/roles_finder.py`,
+   `find-roles --role product --location bangalore --funded-within 90 [--deep]`).
+   Resolution per company: known careers_url → free ATS probe (Greenhouse/Lever/Ashby
+   public JSON) → `--deep`: Flash + Google Search grounding finds the careers page
+   (validated before caching into companies.careers_url), plain pages via Flash
+   extraction. Results in `job_roles`. Live-tested: Sarvam AI → 64 openings.
+   `job_mode` setting off = find-roles refuses + pipeline skips Layer 7 (refill later
+   via `analyze --article-id`). NO LinkedIn scraping (ToS).
+   Layer 1 extracts `hiring_signals` per article (added 2026-07-11; older articles lack it).
+   REMAINING in Phase E: daily briefing/weekly reports, job-target scoring (100-pt
+   rubric), Telegram + Reddit conversation sources (free APIs; X rejected at $200/mo).
 6. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
    (read-only via Supabase anon key + RLS; pages: briefing, companies, company detail, search).
 7. Phase G: historical backfill — LAST, only after step 1's quality gate.

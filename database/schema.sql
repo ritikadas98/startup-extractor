@@ -158,3 +158,17 @@ ON CONFLICT (key) DO NOTHING;
 -- deep-analyzed article is canonical; later copies get status 'duplicate'.
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS duplicate_of BIGINT REFERENCES articles(id);
 CREATE INDEX IF NOT EXISTS idx_articles_duplicate_of ON articles(duplicate_of);
+
+-- Phase E: live job openings per company (roles finder)
+CREATE TABLE IF NOT EXISTS job_roles (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    company_id  BIGINT NOT NULL REFERENCES companies(id),
+    title       TEXT NOT NULL,
+    location    TEXT,
+    department  TEXT,
+    url         TEXT,
+    source_kind TEXT NOT NULL,                 -- greenhouse|lever|ashby|page
+    first_seen  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_seen   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE NULLS NOT DISTINCT (company_id, title, location)
+);

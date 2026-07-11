@@ -158,6 +158,48 @@ def analyze(article_id: int = typer.Option(None, help="Analyze one specific arti
                       f"total cost ${total:.4f}")
 
 
+@app.command("find-roles")
+def find_roles(role: str = typer.Option(None, help="Title keyword filter, e.g. 'product'"),
+               location: str = typer.Option(None, help="Location keyword, e.g. 'bangalore'"),
+               funded_within: int = typer.Option(90, help="Companies funded in the last N days"),
+               limit: int = typer.Option(10, help="Max companies to check"),
+               deep: bool = typer.Option(False, help="AI-search for careers pages when unknown (~₹3/company)")):
+    """Live job openings at freshly-funded startups (Phase E roles finder)."""
+    from jobs.roles_finder import roles_for_company, store_roles
+    from database import db
+
+    with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled", "job_mode"):
+            return
+        companies = db.recently_funded_companies(conn, funded_within, limit)
+        if not companies:
+            console.print("[yellow]No recently funded companies in that window.[/yellow]")
+            raise typer.Exit()
+        console.print(f"Checking {len(companies)} recently funded companies…\n")
+        shown = 0
+        for c in companies:
+            roles, kind = roles_for_company(conn, dict(c), deep=deep)
+            store_roles(conn, c["id"], roles, kind)
+            conn.commit()
+            matches = [r for r in roles
+                       if (not role or role.lower() in r["title"].lower())
+                       and (not location or location.lower() in (r.get("location") or "").lower())]
+            if not matches:
+                continue
+            shown += 1
+            console.print(f"[bold]{c['name']}[/bold]  [dim]({c['hq_city'] or '?'} · "
+                          f"funded {c['funded_at']:%d %b} · via {kind})[/dim]")
+            for r in matches[:10]:
+                loc = f" — {r['location']}" if r.get("location") else ""
+                console.print(f"  • {r['title']}{loc}")
+                if r.get("url"):
+                    console.print(f"    [dim]{r['url']}[/dim]")
+            console.print()
+        if not shown:
+            console.print("[yellow]No matching open roles found. Try --deep to discover "
+                          "careers pages via AI search, or widen the filters.[/yellow]")
+
+
 @app.command()
 def embed(limit: int = typer.Option(100, help="Max articles to embed this run")):
     """Create semantic embeddings for fully-analyzed articles (Phase C)."""

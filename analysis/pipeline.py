@@ -78,10 +78,13 @@ def process_article(conn, article: dict) -> dict:
 
         company_id = _company_id_for(conn, l1.get("company_name", ""))
 
+        job_mode = db.get_setting(conn, "job_mode", "true") == "true"
         for n in range(2, 9):
             if n in completed:
                 results[n] = db.get_layer_result(conn, article_id, n)
                 continue
+            if n == 7 and not job_mode:
+                continue  # interview prep off; `analyze --article-id N` refills later
             prior = {k: results[k] for k in PRIOR_CONTEXT[n] if k in results}
             r = call_layer(n, text, metadata, prior_layers=prior)
             results[n] = r.result

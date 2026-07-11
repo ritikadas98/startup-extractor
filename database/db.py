@@ -238,6 +238,27 @@ def mark_duplicate(conn: psycopg.Connection, article_id: int, canonical_id: int)
     )
 
 
+# --- roles finder ---
+
+def recently_funded_companies(conn: psycopg.Connection, days: int = 90,
+                              limit: int = 10) -> list[dict]:
+    """Companies with a funding round announced/published in the window, newest first."""
+    return conn.execute(
+        """
+        SELECT DISTINCT ON (c.id) c.id, c.name, c.name_normalized, c.website,
+               c.careers_url, c.hq_city, c.industry,
+               coalesce(fr.announced_date::timestamptz, a.published_at) AS funded_at
+        FROM companies c
+        JOIN funding_rounds fr ON fr.company_id = c.id
+        JOIN articles a ON a.id = fr.article_id
+        WHERE coalesce(fr.announced_date::timestamptz, a.published_at)
+              >= now() - make_interval(days => %s)
+        ORDER BY c.id, funded_at DESC
+        """,
+        (days,),
+    ).fetchall()[:limit]
+
+
 # --- pipeline settings (control switches) ---
 
 def get_setting(conn: psycopg.Connection, key: str, default: str = "") -> str:
@@ -292,11 +313,16 @@ def get_recent_tldrs(conn: psycopg.Connection, days: int = 1, limit: int = 20,
 
 # --- companies / rounds / investors / founders ---
 
+NULLISH = {"null", "none", "unknown", "n/a", ""}
+
+
 def upsert_company(conn: psycopg.Connection, name: str, **fields) -> int:
     norm = normalize_name(name)
     if not norm:
         raise ValueError(f"unusable company name: {name!r}")
-    cols = {k: v for k, v in fields.items() if v}
+    # models sometimes return the literal string "null" — treat as absent
+    cols = {k: v for k, v in fields.items()
+            if v and str(v).strip().lower() not in NULLISH}
     row = conn.execute(
         """
         INSERT INTO companies (name, name_normalized, website, careers_url, linkedin_url,

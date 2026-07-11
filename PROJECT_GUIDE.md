@@ -189,6 +189,8 @@ cd ~/startup_intel && source .venv/bin/activate
 | `python -m cli.main resume` | Turn everything back on |
 | `python -m cli.main set-budget 25` | Monthly hard cap on AI spend, in USD |
 | `python -m cli.main scrape / fetch-text / analyze` | Run pipeline steps manually |
+| `python -m cli.main find-roles --role product --location bangalore` | Live openings at freshly-funded startups (`--deep` = AI-discover careers pages, ~₹3/company) |
+| `python -m cli.main embed` / `build-graph` | Refresh semantic vectors + company-relationship edges (also run daily automatically) |
 
 The daily cloud run does scrape → fetch → analyze automatically; these commands exist
 for manual control and catching up.

@@ -1,0 +1,35 @@
+# Pluggable scraper config. Add a source: create scrapers/<module>.py extending
+# BaseScraper, then add an entry here with enabled: true. Nothing else changes.
+sources:
+  entrackr:
+    module: scrapers.entrackr_rss
+    class: EntrackrRSS
+    enabled: true
+    feed_url: "https://entrackr.com/rss"
+
+  inc42:
+    module: scrapers.inc42_rss
+    class: Inc42RSS
+    enabled: true
+    feed_url: "https://inc42.com/feed/"
+
+  google_news:
+    module: scrapers.google_news_rss
+    class: GoogleNewsRSS
+    enabled: true
+    queries:
+      - "indian startup raises funding"
+      - "startup funding india seed OR series"
+      - "india startup series A OR series B funding"
+
+  yourstory:
+    module: scrapers.yourstory
+    class: YourStoryScraper
+    enabled: true
+    feed_url: "https://yourstory.com/feed"
+
+  ettech:
+    module: scrapers.ettech
+    class: ETTechScraper
+    enabled: true
+    feed_url: "https://economictimes.indiatimes.com/tech/rssfeeds/13357270.cms"

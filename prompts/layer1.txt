@@ -1,0 +1,12 @@
+LAYER 1 — STRUCTURED DATA EXTRACTION
+
+Extract the structured facts about the PRIMARY company in this article. This layer is factual: take only what the article states or what is unambiguous (e.g., converting ₹ crore to USD).
+
+Rules:
+- If the article is a roundup covering several companies, pick the company given the most coverage as primary and set confidence_score accordingly (≤ 0.6).
+- If the article is NOT about startup funding at all (opinion piece, market report, IPO of a public company, fund launch by a VC), set is_funding_article = false and fill only what applies.
+- amount_usd: convert from the stated currency (₹85/USD default). null if no amount stated.
+- stage: one of pre-seed | seed | pre-series-a | series-a | series-b | series-c | growth | debt | unknown.
+- investors: every investor named, marking the lead if identified. type: vc | angel | corporate | family-office | accelerator | unknown.
+- website / careers_url / linkedin_url: only if stated in the article or trivially derivable from the company's stated domain; otherwise null. Do not invent URLs.
+- confidence_score (0-1): how confident you are that the extraction is complete and the company is correctly identified.

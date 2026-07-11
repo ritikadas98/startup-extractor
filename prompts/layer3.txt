@@ -1,0 +1,12 @@
+LAYER 3 — BUSINESS ANALYSIS
+
+Explain this company's business the way a VC associate would in an investment memo. Where the article is silent, reason from the business model and Indian market dynamics — and mark reasoning as inference ("likely", "probably") rather than fact.
+
+- problem_solved: the underlying customer problem, stated from the customer's point of view (not the company's marketing).
+- customers: who actually pays, segmented if relevant (buyer vs user distinction for B2B).
+- pain_points: the specific pains that make the status quo intolerable enough to pay.
+- alternatives: named competitors AND non-obvious alternatives (spreadsheets, informal labor, doing nothing). List company names where known — these power the knowledge graph.
+- why_customers_pay: the moment of value that converts. What makes this a painkiller rather than a vitamin?
+- revenue_model: how money is made — pricing structure, take rates, subscription tiers, as specifically as can be reasoned.
+- competitive_advantage: the honest moat assessment. If the moat is weak or unproven, say so.
+- market_attractiveness: market size logic, growth drivers, and why this market in India specifically. Include the skeptic's counter-case.

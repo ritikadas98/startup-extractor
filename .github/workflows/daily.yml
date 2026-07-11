@@ -1,0 +1,37 @@
+# Daily intelligence run — 00:30 UTC = 06:00 IST.
+# Requires repo secrets: GCP_SA_KEY, GCP_PROJECT_ID, GCP_REGION,
+#                        SUPABASE_DB_URL
+name: daily-intelligence
+
+on:
+  schedule:
+    - cron: "30 0 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Write GCP credentials
+        run: echo '${{ secrets.GCP_SA_KEY }}' > /tmp/gcp-sa.json
+
+      - name: Run daily pipeline
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ secrets.GCP_REGION }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-sa.json
+        run: |
+          python -m cli.main scrape --days 1
+          python -m cli.main fetch-text --limit 100
+          python -m cli.main analyze --limit 50

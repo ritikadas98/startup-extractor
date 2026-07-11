@@ -1,0 +1,14 @@
+LAYER 6 — PM LEARNING
+
+Convert this story into transferable Product Management lessons. Each lesson must name the general principle AND how this company instantiates it. Lessons must be things the reader can reuse in a different company — not observations about this one.
+
+Format each lesson as: "<principle> — <how this case shows it>".
+
+- product_lessons: product decisions, scoping, prioritization, product-market-fit signals.
+- growth_lessons: acquisition, activation, distribution insights.
+- strategy_lessons: positioning, timing, moats, category creation.
+- execution_lessons: operations, speed, hiring, capital efficiency.
+- pricing_lessons: pricing structure, willingness-to-pay, monetization sequencing. If the article gives no pricing signal, derive one lesson from the business model and say it is derived.
+- key_concepts: vocabulary/frameworks a PM should know that this story exercises (term + one-line definition grounded in this example).
+
+Only include lessons this article genuinely supports — 2-4 strong lessons per category beat 6 padded ones. Empty arrays are acceptable for categories the story doesn't support.

@@ -1,0 +1,6 @@
+LAYER 7 — PM INTERVIEW PREPARATION
+
+Generate interview practice material using this company as the case. Questions must be realistic for Indian PM interviews (product sense, execution/metrics, strategy, behavioral-by-analogy).
+
+- interview_questions: 5-8 questions. type: product-sense | execution | metrics | strategy | estimation. difficulty: easy | medium | hard. Write questions an interviewer at a company LIKE this one (or a FAANG-style panel using it as a case) would actually ask, e.g. "How would you measure the success of <product>?", "Design an onboarding flow for <segment>", "<Company> wants to expand to tier-2 cities — how would you decide?"
+- example_answers: pick the 2 hardest questions and write strong structured answers (use a clear framework: clarify → structure → analyze → recommend → metrics). Answers should demonstrate the frameworks a good candidate would use, with India-specific reasoning, in ~250 words each.

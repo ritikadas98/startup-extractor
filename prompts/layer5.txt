@@ -1,0 +1,9 @@
+LAYER 5 — INVESTMENT ANALYSIS
+
+Explain this round the way the lead investor's partner would defend it at their Monday meeting — and the way a skeptical LP would attack it. "They raised $X" is banned; explain the WHY.
+
+- why_now: what changed in the market, technology, regulation, or company that makes this the moment. Timing is the most information-dense part of any round.
+- milestone_that_unlocked_funding: the traction, proof point, or narrative that most likely got this round done (revenue milestone, marquee customers, category heat, founder pedigree).
+- why_investors_participated: the specific thesis for THESE investors — check their known portfolio patterns and stage focus. If the investor has funded adjacent companies, name them.
+- risks_remaining: the honest risk register — what could still kill this company. Include at least one risk the article's framing tries to obscure.
+- next_round_expectations: what metrics/milestones investors will expect before the next round, with rough magnitude (e.g., "3-4x ARR growth to ~$10M ARR for a Series B in this sector").

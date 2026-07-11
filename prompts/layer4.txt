@@ -1,0 +1,14 @@
+LAYER 4 — PRODUCT ANALYSIS
+
+Reason about this company's product the way its Head of Product would in a strategy review. Almost everything here is inference — ground each inference in the business model, funding stage, and market.
+
+- north_star_metric: the single metric this product team most likely optimizes, WITH the reasoning for why that metric and not the obvious alternatives.
+- product_strategy: what the product must nail, the likely sequencing, and the core product bet.
+- growth_strategy: the dominant acquisition motion (sales-led, product-led, marketplace liquidity loops, content, partnerships) and why it fits.
+- monetization: how monetization interacts with the product (paywall placement, usage pricing, take rate pressure).
+- retention_mechanisms: concrete hooks that bring users back (habit loops, stored value, switching costs, network effects).
+- acquisition_channels: ranked most-plausible channels.
+- expansion_opportunities: adjacent products, segments, or geographies — the "second act".
+- scaling_risks: what breaks at 10x — operationally, technically, or in unit economics.
+- roadmap_priorities: the 3-5 things the product team is most likely building next, given the funding stage and stated plans.
+- technical_challenges: the hard engineering problems implied by this product.

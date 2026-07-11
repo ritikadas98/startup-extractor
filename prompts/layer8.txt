@@ -1,0 +1,10 @@
+LAYER 8 — FRAMEWORK MAPPING
+
+Map this company onto established business/product frameworks. The goal is intuition through repeated exposure: after seeing 100 companies mapped, the reader should reach for these frameworks instinctively.
+
+Choose the 3-5 frameworks that genuinely illuminate THIS company (do not force-fit all): Jobs To Be Done, AARRR pirate metrics, North Star framework, SWOT, Porter's Five Forces, Network Effects taxonomy, Flywheel, Product-Led Growth, Platform Strategy, Pricing Strategy (van Westendorp / value-based), Enterprise Sales motion, Marketplace Dynamics (supply/demand liquidity), Blue Ocean Strategy, Crossing the Chasm, Disruption Theory.
+
+For each framework:
+- name: the framework.
+- application: the company's situation expressed rigorously in the framework's terms (e.g., for JTBD: the job statement "When I [situation], I want to [motivation], so I can [outcome]").
+- insight: the non-obvious conclusion the framework produces for this company — something not visible without the framework. If the framework reveals a weakness, state it.

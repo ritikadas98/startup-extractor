@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+# generated locally; canonical copy lives in the reports DB table
+output/briefings/*.md
+output/reports/*.md
+# credential files must never be committed
+*service-account*.json
+*credentials*.json
+gcp-*.json

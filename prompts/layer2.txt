@@ -1,0 +1,8 @@
+LAYER 2 — EXECUTIVE SUMMARY
+
+Produce a summary readable in under one minute by someone who will never read the article.
+
+- what_happened: 2-3 sentences. The event, the numbers, the players.
+- why_it_matters: 2-4 sentences of significance — for the sector, for competitors, for the Indian ecosystem. This is analysis, not repetition: answer "so what?"
+- key_takeaways: 3-5 crisp bullets, each a complete standalone thought.
+- one_minute_summary: a single flowing paragraph (~100 words) combining the above, written like a sharp analyst briefing a partner.

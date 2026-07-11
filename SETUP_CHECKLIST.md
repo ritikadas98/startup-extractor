@@ -305,38 +305,39 @@ run `git commit --amend --reset-author --no-edit` and `git push --force`.)*
 
 ### 3d. Add the secrets for the daily automation
 
-GitHub Actions needs its own copies of the credentials (it can't read your `.env`).
+**✅ Done 2026-07-11 (via terminal, not the browser).** What was set up, for the record:
 
-**First, create a service account key** (a credential file that lets GitHub Actions use
-Vertex AI):
+GitHub Actions authenticates to GCP **keylessly** via Workload Identity Federation —
+GCP's newer projects forbid downloadable service-account keys (policy
+`iam.disableServiceAccountKeyCreation`), and keyless is the recommended approach anyway
+(nothing to leak or rotate). The pieces:
 
-1. In your Chrome profile: https://console.cloud.google.com → confirm project picker
-   shows `startup-intel` → ☰ menu → **IAM & Admin** → **Service Accounts**.
-2. Click **+ Create service account** (top).
-   - Name: `github-actions` → **Create and continue**.
-   - *Grant access* step: add two roles, one at a time, using the role dropdown's
-     search box: **Vertex AI User**, then **+ Add another role** → **Storage Object
-     Admin**. Click **Continue**, then **Done**.
-3. Back on the list, click the `github-actions@...` account you just made → **Keys**
-   tab → **Add key** → **Create new key** → **JSON** → **Create**. A `.json` file
-   downloads to your Downloads folder.
-4. Open that file with TextEdit — you'll paste its **entire contents** in a moment.
+- Service account `github-actions@startup-extractor.iam.gserviceaccount.com` with roles
+  **Vertex AI User** + **Storage Object Admin**.
+- Workload identity pool `github` with OIDC provider `github-provider`, which trusts
+  GitHub Actions tokens **only from the `ritikadas98/startup-extractor` repo**.
+- The repo's `.github/workflows/daily.yml` uses `google-github-actions/auth@v2` with
+  that provider (needs `permissions: id-token: write`, already in the file).
+- Three repo secrets (Settings → Secrets and variables → Actions): `GCP_PROJECT_ID`,
+  `GCP_REGION`, `SUPABASE_DB_URL`. There is **no `GCP_SA_KEY`** — no key exists.
 
-**Then add the four secrets on GitHub:**
-
-1. In your browser: your repo page → **Settings** tab → left sidebar **Secrets and
-   variables** → **Actions** → green **New repository secret** button. Add these four,
-   one at a time (Name exactly as shown, then Value, then **Add secret**):
-
-   | Name | Value |
-   |------|-------|
-   | `GCP_SA_KEY` | the entire contents of the downloaded `.json` file (all of it, `{` to `}`) |
-   | `GCP_PROJECT_ID` | your project ID (e.g. `startup-intel-451216`) |
-   | `GCP_REGION` | `us-central1` |
-   | `SUPABASE_DB_URL` | the same connection string as in your `.env` (password included) |
-
-2. Afterwards, delete the `.json` file from Downloads (drag to Trash) — it's a
-   credential; it shouldn't sit around.
+If this ever needs redoing, the equivalent gcloud commands are:
+```bash
+gcloud iam service-accounts create github-actions
+gcloud projects add-iam-policy-binding startup-extractor \
+  --member="serviceAccount:github-actions@startup-extractor.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"   # repeat with roles/storage.objectAdmin
+gcloud iam workload-identity-pools create github --location=global
+gcloud iam workload-identity-pools providers create-oidc github-provider \
+  --location=global --workload-identity-pool=github \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository == 'ritikadas98/startup-extractor'"
+gcloud iam service-accounts add-iam-policy-binding \
+  github-actions@startup-extractor.iam.gserviceaccount.com \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/projects/498496822134/locations/global/workloadIdentityPools/github/attribute.repository/ritikadas98/startup-extractor"
+```
 
 ### 3e. Verify — run the automation once by hand
 

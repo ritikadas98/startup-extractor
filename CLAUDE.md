@@ -45,8 +45,14 @@ DONE and tested:
   dominate) — recheck the $40–80 backfill estimate against real per-article cost before
   Phase G.
 
-BLOCKED on Ritika (see SETUP_CHECKLIST.md §3): GitHub only — `gh auth login`, per-repo
-git identity, first commit/push, Actions secrets.
+- GitHub live: private repo `ritikadas98/startup-extractor`, per-repo identity = Ritika
+  (verified in git log). Ayan's global gitconfig rewrites GitHub HTTPS→SSH (`insteadOf`);
+  this repo has a local counter-rule pinning `ritikadas98/` URLs to HTTPS — don't remove.
+- Actions auth is **keyless** (Workload Identity Federation, pool `github`, provider
+  `github-provider`, repo-restricted) — GCP forbids SA keys on this project. Secrets:
+  GCP_PROJECT_ID, GCP_REGION, SUPABASE_DB_URL only; no GCP_SA_KEY.
+
+Setup checklist: fully done except Netlify (Phase F, frontend not built yet).
 
 NEXT, in order:
 1. `analyze --limit 10` and **manually review analysis quality / iterate prompts BEFORE

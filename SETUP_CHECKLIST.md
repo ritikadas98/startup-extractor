@@ -1,5 +1,26 @@
 # One-time setup checklist (Ritika)
 
+## TL;DR — current state (2026-07-11)
+
+**Setup is DONE except Netlify (§4, waits for the frontend).** Everything is live and
+verified end-to-end:
+
+| What | State |
+|------|-------|
+| Supabase | ✅ project live (`ap-southeast-1`), schema applied, articles flowing |
+| GCP / Vertex AI | ✅ project `startup-extractor`, gcloud config `ritika`, pipeline ran all 8 layers (~₹17/article) |
+| GCS bucket | ✅ `startup-extractor-batch` (for the backfill later) |
+| GitHub | ✅ private repo `ritikadas98/startup-extractor`, commits authored by Ritika |
+| Daily automation | ✅ GitHub Actions, 06:00 IST, keyless GCP auth (WIF, no key file) |
+| GCP credits | ~₹1.22L available; the ₹28k free-trial credit **expires 20 Aug 2026** — use it first (it covers the backfill ~10×) |
+
+**Next action:** review analysis quality (`analyze` output) and tune prompts **before**
+any bulk processing — see CLAUDE.md "NEXT".
+
+The rest of this file is the step-by-step guide, kept for reference / redoing any part.
+
+---
+
 Everything below needs **your** accounts. The code is already built and tested — these
 steps just connect it to your Supabase, Google Cloud, and GitHub accounts.
 

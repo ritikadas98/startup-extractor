@@ -63,6 +63,13 @@ NEXT, in order:
    alternatives[], same_business_model, same_stage_quarter; AI-assisted same_market).
 3. Phase D: `scheduler/daily_runner.py` + wire remaining steps into `.github/workflows/daily.yml`.
 4. Phase E: reports (daily briefing, weekly trends, monthly, job-target scoring 100-pt rubric in PLAN).
+   Includes **roles finder**: user gives filters at run time (role keywords, location,
+   stage, sector, funding recency) → query companies table (freshly funded = hiring
+   signal) → fetch live openings per company: detect ATS from `careers_url` (Greenhouse
+   `boards-api.greenhouse.io`, Lever `api.lever.co/v0/postings`, Ashby — all public JSON,
+   no auth) with a flash-extraction fallback for plain careers pages; store in a
+   `job_roles` table, rank via the 100-pt rubric. NO LinkedIn scraping (ToS). CLI:
+   `find-roles --role "product" --location bangalore --funded-within 90`.
 5. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
    (read-only via Supabase anon key + RLS; pages: briefing, companies, company detail, search).
 6. Phase G: historical backfill — LAST, only after step 1's quality gate.

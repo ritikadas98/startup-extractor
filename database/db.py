@@ -132,6 +132,23 @@ def get_layer_result(conn: psycopg.Connection, article_id: int, layer_number: in
     return row["result_json"] if row else None
 
 
+def get_recent_tldrs(conn: psycopg.Connection, days: int = 1, limit: int = 20,
+                     source: str | None = None) -> list[dict]:
+    """Layer-2 summaries of recently analyzed articles, newest first."""
+    return conn.execute(
+        """
+        SELECT a.id, a.title, a.source, a.url, a.published_at, r.result_json
+        FROM analysis_results r JOIN articles a ON a.id = r.article_id
+        WHERE r.layer_number = 2
+          AND r.created_at >= now() - make_interval(days => %s)
+          AND (%s::text IS NULL OR a.source = %s)
+        ORDER BY a.published_at DESC NULLS LAST
+        LIMIT %s
+        """,
+        (days, source, source, limit),
+    ).fetchall()
+
+
 # --- companies / rounds / investors / founders ---
 
 def upsert_company(conn: psycopg.Connection, name: str, **fields) -> int:

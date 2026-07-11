@@ -110,6 +110,31 @@ def status():
     console.print(t)
 
 
+@app.command()
+def tldr(days: int = typer.Option(1, help="Look-back window in days (by analysis time)"),
+         limit: int = typer.Option(20, help="Max articles to show"),
+         source: str = typer.Option(None, help="Filter to one source, e.g. entrackr"),
+         full: bool = typer.Option(False, help="Also show why-it-matters and takeaways")):
+    """TL;DR of recently analyzed articles (Layer-2 executive summaries)."""
+    from database import db
+    with db.get_conn() as conn:
+        rows = db.get_recent_tldrs(conn, days, limit, source)
+    if not rows:
+        console.print("[yellow]No analyzed articles in this window — run analyze first.[/yellow]")
+        raise typer.Exit()
+    for r in rows:
+        j = r["result_json"]
+        date = r["published_at"].strftime("%d %b") if r["published_at"] else "?"
+        console.print(f"\n[bold]{r['title']}[/bold]  [dim]({r['source']}, {date})[/dim]")
+        console.print(j.get("one_minute_summary") or j.get("what_happened", ""))
+        if full:
+            if j.get("why_it_matters"):
+                console.print(f"[cyan]Why it matters:[/cyan] {j['why_it_matters']}")
+            for b in j.get("key_takeaways", []):
+                console.print(f"  • {b}")
+        console.print(f"[dim]{r['url']}[/dim]")
+
+
 @app.command("cost-summary")
 def cost_summary_cmd():
     """Vertex AI spend by model."""

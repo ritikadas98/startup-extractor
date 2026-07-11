@@ -159,6 +159,32 @@ def analyze(article_id: int = typer.Option(None, help="Analyze one specific arti
 
 
 @app.command()
+def embed(limit: int = typer.Option(100, help="Max articles to embed this run")):
+    """Create semantic embeddings for fully-analyzed articles (Phase C)."""
+    from search.embeddings import embed_pending
+    from database import db
+    with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled"):
+            return
+        n = embed_pending(conn, limit)
+    console.print(f"[green]{n} articles embedded[/green]")
+
+
+@app.command("build-graph")
+def build_graph_cmd():
+    """Detect company relationships → knowledge-graph edges (Phase C)."""
+    from knowledge.graph import build_graph
+    from database import db
+    with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled"):
+            return
+        counts = build_graph(conn)
+    for k, v in counts.items():
+        console.print(f"  {k}: {v}")
+    console.print("[green]Graph updated.[/green]")
+
+
+@app.command()
 def pause(analysis: bool = typer.Option(False, "--analysis",
           help="Pause only the AI analysis (scraping keeps collecting, free)")):
     """Stop the pipeline — locally AND the daily cloud run (they read the same switch)."""

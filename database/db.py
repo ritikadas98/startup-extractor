@@ -132,6 +132,59 @@ def get_layer_result(conn: psycopg.Connection, article_id: int, layer_number: in
     return row["result_json"] if row else None
 
 
+# --- embeddings ---
+
+def articles_needing_embedding(conn: psycopg.Connection, limit: int = 100) -> list[dict]:
+    """Fully-analyzed articles without an 'analysis' embedding yet."""
+    return conn.execute(
+        """
+        SELECT a.id, a.title FROM articles a
+        WHERE a.processing_status = 'complete'
+          AND EXISTS (SELECT 1 FROM analysis_results r
+                      WHERE r.article_id = a.id AND r.layer_number = 8)
+          AND NOT EXISTS (SELECT 1 FROM embeddings e
+                          WHERE e.article_id = a.id AND e.content_kind = 'analysis')
+        ORDER BY a.published_at DESC NULLS LAST LIMIT %s
+        """,
+        (limit,),
+    ).fetchall()
+
+
+def insert_embedding(conn: psycopg.Connection, article_id: int, layer_number: int,
+                     content_kind: str, vector: list[float]) -> None:
+    conn.execute(
+        """
+        INSERT INTO embeddings (article_id, layer_number, content_kind, embedding)
+        VALUES (%s, %s, %s, %s::vector)
+        ON CONFLICT (article_id, layer_number, content_kind) DO UPDATE
+            SET embedding = EXCLUDED.embedding, created_at = now()
+        """,
+        (article_id, layer_number, content_kind,
+         "[" + ",".join(f"{x:.7f}" for x in vector) + "]"),
+    )
+
+
+# --- knowledge graph ---
+
+def upsert_edge(conn: psycopg.Connection, company_a: int, company_b: int,
+                rel_type: str, confidence: float, evidence: str,
+                detected_by: str) -> None:
+    """Store an undirected edge; (a,b) is ordered so each pair exists once."""
+    a, b = sorted((company_a, company_b))
+    if a == b:
+        return
+    conn.execute(
+        """
+        INSERT INTO company_relationships
+            (company_a_id, company_b_id, relationship_type, confidence, evidence, detected_by)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (company_a_id, company_b_id, relationship_type) DO UPDATE
+            SET confidence = EXCLUDED.confidence, evidence = EXCLUDED.evidence
+        """,
+        (a, b, rel_type, confidence, evidence, detected_by),
+    )
+
+
 # --- story-level dedup ---
 
 def find_canonical_article(conn: psycopg.Connection, name_normalized: str,

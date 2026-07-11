@@ -77,6 +77,11 @@ NEXT, in order:
    team_expansion_notes) — added 2026-07-11, so articles analyzed before that lack it.
    Deferred to this phase: Telegram job channels + Reddit as conversation sources
    (both have free APIs); X/Twitter rejected — read access starts at $200/month.
+   **JOB_MODE toggle** (user requirement 2026-07-11): a single setting (env/config) that
+   disables the job-search features when not job hunting — skips Layer 7 generation,
+   role sections in reports, roles-finder scheduling. Layers 1-6/8 (learning core) and
+   hiring_signals (free, inside L1) keep running. Re-enabling backfills missing L7s
+   automatically via the resume-safe upsert.
 6. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
    (read-only via Supabase anon key + RLS; pages: briefing, companies, company detail, search).
 7. Phase G: historical backfill — LAST, only after step 1's quality gate.

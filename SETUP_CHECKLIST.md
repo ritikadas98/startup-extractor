@@ -8,7 +8,7 @@ verified end-to-end:
 | What | State |
 |------|-------|
 | Supabase | ✅ project live (`ap-southeast-1`), schema applied, articles flowing |
-| GCP / Vertex AI | ✅ project `startup-extractor`, gcloud config `ritika`, pipeline ran all 8 layers (~₹17/article) |
+| GCP / Vertex AI | ✅ project `startup-extractor`, gcloud config `ritika`, pipeline ran all 8 layers (~₹5/article flash-only) |
 | GCS bucket | ✅ `startup-extractor-batch` (for the backfill later) |
 | GitHub | ✅ private repo `ritikadas98/startup-extractor`, commits authored by Ritika |
 | Daily automation | ✅ GitHub Actions, 06:00 IST, keyless GCP auth (WIF, no key file) |

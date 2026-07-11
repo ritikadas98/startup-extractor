@@ -153,17 +153,20 @@ All numbers below are from real runs (₹85/$):
 
 | Item | Cost |
 |---|---|
-| One full 8-layer analysis | **$0.205 (~₹17.4)** — Pro layers are ~90% of it |
-| One non-funding article (gated at L1) | $0.031 (~₹2.6) |
+| One full 8-layer analysis (flash-only, since 2026-07-12) | **$0.058 (~₹4.9)** |
+| One non-funding article (gated at L1) | ~$0.01 (~₹0.85) |
 | One duplicate copy (gated after L1) | $0.003 (~₹0.3) |
 | Supabase, GitHub Actions, Netlify | ₹0 (free tiers) |
 
-**Monthly run-rate** (with story dedup, ~8–12 unique funding events/day):
-**~₹4.5–6.5k/month**, capped by the budget switch (currently $25 ≈ ₹2.1k — raise it
-with `set-budget` when the volume justifies it).
+(The smarter-but-pricier Pro model originally ran the 5 deep layers at ~₹17.4/article;
+the user chose flash-only for cost. Any layer can be switched back with one line in
+`config/settings.py`.)
 
-**One-time historical backfill** (next phase): ~240 days of history at batch pricing
-(Vertex Batch Prediction runs at ~50% of interactive price) ≈ **₹20k**.
+**Monthly run-rate** (story dedup + flash-only, ~8–12 unique funding events/day):
+**~₹1.8–2.5k/month**, capped by the budget switch (`set-budget`).
+
+**One-time historical backfill**: ~1,350 discovered articles → roughly 600–800 full
+analyses after gating/dedup ≈ **~₹4–5k** flash-only through the normal pipeline.
 
 **Credits reality-check (corrected 2026-07-12):** the ₹27.9k signup credit (expires
 **20 Aug 2026**) is general-purpose and covers our Gemini usage — the backfill and

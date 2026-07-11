@@ -19,8 +19,10 @@ Supabase accounts (in her non-default Chrome profile) are used for everything.
 ## Stack
 
 Python 3.13 (`.venv/`) + Typer CLI · Supabase Postgres + pgvector (direct psycopg via
-`SUPABASE_DB_URL`) · Vertex AI Gemini (2.5-flash for layers 1/2/7, 2.5-pro for 3/4/5/6/8,
-structured JSON output, cost tracked per call) · GitHub Actions cron 00:30 UTC = 06:00 IST.
+`SUPABASE_DB_URL`) · Vertex AI Gemini (**flash-only routing since 2026-07-12**, user
+cost decision; measured $0.058/full article vs $0.205 with pro on 3/4/5/6/8 — restore
+per-layer in `LAYER_MODEL_MAP`; structured JSON output, cost tracked per call) ·
+GitHub Actions cron 00:30 UTC = 06:00 IST.
 
 ```bash
 source .venv/bin/activate

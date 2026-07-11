@@ -26,15 +26,17 @@ SCHEMA_SQL = PROJECT_ROOT / "database" / "schema.sql"
 # --- Model routing: layer number -> Gemini model ---
 FLASH = "gemini-2.5-flash"
 PRO = "gemini-2.5-pro"
+# Flash-only routing (user decision 2026-07-12, cost: ~₹6/article vs ~₹17.4 with
+# Pro on layers 3-6/8). To restore Pro for any layer, change its value back to PRO.
 LAYER_MODEL_MAP = {
     1: FLASH,  # structured extraction
     2: FLASH,  # executive summary
-    3: PRO,    # business analysis
-    4: PRO,    # product analysis
-    5: PRO,    # investment analysis
-    6: PRO,    # PM learning
+    3: FLASH,  # business analysis
+    4: FLASH,  # product analysis
+    5: FLASH,  # investment analysis
+    6: FLASH,  # PM learning
     7: FLASH,  # interview prep
-    8: PRO,    # framework mapping
+    8: FLASH,  # framework mapping
 }
 
 LAYER_NAMES = {

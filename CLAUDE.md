@@ -55,14 +55,17 @@ DONE and tested:
 Setup checklist: fully done except Netlify (Phase F, frontend not built yet).
 
 NEXT, in order:
-1. `analyze --limit 10` and **manually review analysis quality / iterate prompts BEFORE
-   any bulk processing** — quality gate for the historical backfill (240 days, Vertex
-   Batch Prediction).
-2. Phase C: embeddings (`gemini-embedding-001`, 768-dim, `embeddings` table exists) +
+1. Quality gate: **mostly PASS** (user verdict 2026-07-11 on 3-article review). Note for
+   any UI rendering analyses: Postgres JSONB loses JSON key order (sorts by length) —
+   render fields in `analysis/schemas.py` order, or "answer" shows before "question".
+2. **Story-level dedup before backfill** — the same funding round arrives from ~3-5
+   outlets and each copy currently gets a full $0.205 analysis; URL dedup can't catch
+   this. Biggest cost lever: ~3-4x savings on daily runs and backfill.
+3. Phase C: embeddings (`gemini-embedding-001`, 768-dim, `embeddings` table exists) +
    knowledge graph (`knowledge/` — rule detectors: same_investor, competitor via Layer-3
    alternatives[], same_business_model, same_stage_quarter; AI-assisted same_market).
-3. Phase D: `scheduler/daily_runner.py` + wire remaining steps into `.github/workflows/daily.yml`.
-4. Phase E: reports (daily briefing, weekly trends, monthly, job-target scoring 100-pt rubric in PLAN).
+4. Phase D: `scheduler/daily_runner.py` + wire remaining steps into `.github/workflows/daily.yml`.
+5. Phase E: reports (daily briefing, weekly trends, monthly, job-target scoring 100-pt rubric in PLAN).
    Includes **roles finder**: user gives filters at run time (role keywords, location,
    stage, sector, funding recency) → query companies table (freshly funded = hiring
    signal) → fetch live openings per company: detect ATS from `careers_url` (Greenhouse
@@ -74,9 +77,9 @@ NEXT, in order:
    team_expansion_notes) — added 2026-07-11, so articles analyzed before that lack it.
    Deferred to this phase: Telegram job channels + Reddit as conversation sources
    (both have free APIs); X/Twitter rejected — read access starts at $200/month.
-5. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
+6. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
    (read-only via Supabase anon key + RLS; pages: briefing, companies, company detail, search).
-6. Phase G: historical backfill — LAST, only after step 1's quality gate.
+7. Phase G: historical backfill — LAST, only after step 1's quality gate.
 
 ## Conventions
 

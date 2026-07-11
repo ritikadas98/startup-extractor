@@ -42,3 +42,5 @@ jobs:
           python -m cli.main scrape --days 1
           python -m cli.main fetch-text --limit 100
           python -m cli.main analyze --limit 50
+          python -m cli.main embed --limit 100
+          python -m cli.main build-graph

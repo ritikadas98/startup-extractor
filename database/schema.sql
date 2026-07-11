@@ -139,3 +139,17 @@ CREATE TABLE IF NOT EXISTS reports (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(report_type, report_date)
 );
+
+-- Pipeline control switches (read by CLI commands locally AND by the daily
+-- GitHub Actions run — one switch controls both).
+CREATE TABLE IF NOT EXISTS pipeline_settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+INSERT INTO pipeline_settings (key, value) VALUES
+    ('pipeline_enabled', 'true'),        -- master switch: scrape + fetch + analyze
+    ('analysis_enabled', 'true'),        -- AI spend only; scraping stays on (cheap)
+    ('job_mode',         'true'),        -- Phase E: layer-7/roles features
+    ('monthly_budget_usd', '25')         -- analyze refuses to start past this
+ON CONFLICT (key) DO NOTHING;

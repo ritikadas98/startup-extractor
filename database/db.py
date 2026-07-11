@@ -132,6 +132,41 @@ def get_layer_result(conn: psycopg.Connection, article_id: int, layer_number: in
     return row["result_json"] if row else None
 
 
+# --- pipeline settings (control switches) ---
+
+def get_setting(conn: psycopg.Connection, key: str, default: str = "") -> str:
+    row = conn.execute(
+        "SELECT value FROM pipeline_settings WHERE key = %s", (key,)
+    ).fetchone()
+    return row["value"] if row else default
+
+
+def set_setting(conn: psycopg.Connection, key: str, value: str) -> None:
+    conn.execute(
+        """
+        INSERT INTO pipeline_settings (key, value, updated_at) VALUES (%s, %s, now())
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+        """,
+        (key, value),
+    )
+
+
+def all_settings(conn: psycopg.Connection) -> list[dict]:
+    return conn.execute(
+        "SELECT key, value, updated_at FROM pipeline_settings ORDER BY key"
+    ).fetchall()
+
+
+def month_spend_usd(conn: psycopg.Connection) -> float:
+    row = conn.execute(
+        """
+        SELECT COALESCE(sum(cost_usd), 0) AS spend FROM analysis_results
+        WHERE created_at >= date_trunc('month', now())
+        """
+    ).fetchone()
+    return float(row["spend"])
+
+
 def get_recent_tldrs(conn: psycopg.Connection, days: int = 1, limit: int = 20,
                      source: str | None = None) -> list[dict]:
     """Layer-2 summaries of recently analyzed articles, newest first."""

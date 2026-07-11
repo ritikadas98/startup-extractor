@@ -25,7 +25,12 @@ structured JSON output, cost tracked per call) · GitHub Actions cron 00:30 UTC 
 ```bash
 source .venv/bin/activate
 python -m cli.main init-db | scrape --days 1 | fetch-text --limit 50 | analyze --limit 5 | status | cost-summary
+python -m cli.main tldr --full | settings | pause [--analysis] | resume | set-budget 25
 ```
+
+Control switches live in the `pipeline_settings` DB table, so `pause`/`resume` on the
+laptop also govern the daily GitHub Actions run (commands no-op with exit 0 → cron stays
+green). `monthly_budget_usd` hard-stops `analyze` for the rest of the month when hit.
 
 ## Status (as of 2026-07-11)
 

@@ -15,6 +15,16 @@ def init_db():
     console.print("[green]Schema applied.[/green]")
 
 
+def _gate(conn, *keys: str) -> bool:
+    """True if any of the given switches is off (prints why). Exit 0 keeps cron green."""
+    from database import db
+    for key in keys:
+        if db.get_setting(conn, key, "true") != "true":
+            console.print(f"[yellow]Skipped: '{key}' is off — run `resume` to re-enable.[/yellow]")
+            return True
+    return False
+
+
 @app.command()
 def scrape(source: str = typer.Option(None, help="One source name, or all enabled if omitted"),
            days: int = typer.Option(1, help="Look-back window in days")):
@@ -23,6 +33,9 @@ def scrape(source: str = typer.Option(None, help="One source name, or all enable
     from dedup.deduplicator import url_hash
     from database import db
 
+    with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled"):
+            return
     scrapers = load_scrapers(only=source)
     if not scrapers:
         console.print(f"[red]No scraper named '{source}' in config/sources.yaml[/red]")
@@ -50,6 +63,8 @@ def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this ru
 
     ok, failed = 0, 0
     with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled"):
+            return
         pending = db.get_articles_by_status(conn, "pending", limit)
         for art in pending:
             text = fetch_article_text(art["url"])
@@ -73,6 +88,15 @@ def analyze(article_id: int = typer.Option(None, help="Analyze one specific arti
     from database import db
 
     with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled", "analysis_enabled"):
+            return
+        budget = float(db.get_setting(conn, "monthly_budget_usd", "0") or 0)
+        spent = db.month_spend_usd(conn)
+        if budget and spent >= budget:
+            console.print(f"[yellow]Skipped: monthly budget reached "
+                          f"(${spent:.2f} of ${budget:.2f}) — raise it with "
+                          f"`set-budget` or wait for next month.[/yellow]")
+            return
         db.requeue_stuck_articles(conn)
         conn.commit()
         if article_id:
@@ -93,6 +117,57 @@ def analyze(article_id: int = typer.Option(None, help="Analyze one specific arti
                 continue  # already logged + marked failed; keep going
         console.print(f"[green]{len(articles)} articles processed[/green], "
                       f"total cost ${total:.4f}")
+
+
+@app.command()
+def pause(analysis: bool = typer.Option(False, "--analysis",
+          help="Pause only the AI analysis (scraping keeps collecting, free)")):
+    """Stop the pipeline — locally AND the daily cloud run (they read the same switch)."""
+    from database import db
+    key = "analysis_enabled" if analysis else "pipeline_enabled"
+    with db.get_conn() as conn:
+        db.set_setting(conn, key, "false")
+        conn.commit()
+    what = "AI analysis" if analysis else "entire pipeline (scrape + fetch + analyze)"
+    console.print(f"[yellow]Paused: {what}.[/yellow] Daily cloud runs will no-op until `resume`.")
+
+
+@app.command()
+def resume():
+    """Re-enable everything paused."""
+    from database import db
+    with db.get_conn() as conn:
+        db.set_setting(conn, "pipeline_enabled", "true")
+        db.set_setting(conn, "analysis_enabled", "true")
+        conn.commit()
+    console.print("[green]Resumed: pipeline fully enabled.[/green]")
+
+
+@app.command("set-budget")
+def set_budget(usd: float = typer.Argument(..., help="Monthly cap in USD; 0 = no cap")):
+    """Cap monthly AI spend — analyze refuses to start once the month hits this."""
+    from database import db
+    with db.get_conn() as conn:
+        db.set_setting(conn, "monthly_budget_usd", str(usd))
+        spent = db.month_spend_usd(conn)
+        conn.commit()
+    console.print(f"[green]Budget set to ${usd:.2f}/month[/green] "
+                  f"(this month so far: ${spent:.2f})")
+
+
+@app.command()
+def settings():
+    """Show all pipeline control switches and this month's spend."""
+    from database import db
+    with db.get_conn() as conn:
+        rows = db.all_settings(conn)
+        spent = db.month_spend_usd(conn)
+    t = Table(title="pipeline settings")
+    t.add_column("switch"); t.add_column("value"); t.add_column("updated")
+    for r in rows:
+        t.add_row(r["key"], r["value"], r["updated_at"].strftime("%Y-%m-%d %H:%M"))
+    console.print(t)
+    console.print(f"Spend this month: [bold]${spent:.2f}[/bold]")
 
 
 @app.command()

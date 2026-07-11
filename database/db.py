@@ -246,7 +246,7 @@ def recently_funded_companies(conn: psycopg.Connection, days: int = 90,
     return conn.execute(
         """
         SELECT DISTINCT ON (c.id) c.id, c.name, c.name_normalized, c.website,
-               c.careers_url, c.hq_city, c.industry,
+               c.careers_url, c.careers_checked_at, c.hq_city, c.industry,
                coalesce(fr.announced_date::timestamptz, a.published_at) AS funded_at
         FROM companies c
         JOIN funding_rounds fr ON fr.company_id = c.id

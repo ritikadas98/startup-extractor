@@ -131,7 +131,7 @@ def extract_roles_from_page(url: str) -> list[dict] | None:
         return [{"title": x.get("title", ""), "location": x.get("location"),
                  "department": x.get("department"), "url": url} for x in out["roles"]]
     except Exception as e:
-        log.warning("page extraction failed for %s: %s", url, e)
+        log.info("careers page not usable (%s): %s", url, e)
         return None
 
 
@@ -146,12 +146,24 @@ def roles_for_company(conn, company: dict, deep: bool = False) -> tuple[list[dic
     if url and (not url.startswith("http") or url.strip().lower() in db.NULLISH):
         url = None
     discovered = False
-    if not url and deep:
+    if not url and deep and not _recently_checked(company):
         url = find_careers_url_via_search(company)
         discovered = True
+        # remember the attempt either way — a company with no findable careers
+        # page shouldn't cost a search on every --deep run for the next 14 days
+        conn.execute("UPDATE companies SET careers_checked_at = now() WHERE id = %s",
+                     (company["id"],))
+        conn.commit()
     if url:
         roles = extract_roles_from_page(url)
-        if roles is None:  # dead link or not a careers page — don't cache it
+        if roles is None:
+            # Dead link or not a careers page. If it was a stored URL (e.g. one
+            # Layer 1 guessed from the company domain), clear it so it doesn't
+            # 404 on every run; rediscovery may retry after the cooldown.
+            conn.execute(
+                "UPDATE companies SET careers_url = NULL, careers_checked_at = now() "
+                "WHERE id = %s AND careers_url = %s", (company["id"], url))
+            conn.commit()
             return [], "none"
         if discovered:  # cache only URLs that actually validated
             conn.execute("UPDATE companies SET careers_url = %s WHERE id = %s",
@@ -159,6 +171,12 @@ def roles_for_company(conn, company: dict, deep: bool = False) -> tuple[list[dic
             conn.commit()
         return roles, "page"
     return [], "none"
+
+
+def _recently_checked(company: dict, days: int = 14) -> bool:
+    from datetime import datetime, timedelta, timezone
+    ts = company.get("careers_checked_at")
+    return bool(ts) and ts > datetime.now(timezone.utc) - timedelta(days=days)
 
 
 def store_roles(conn, company_id: int, roles: list[dict], kind: str) -> int:

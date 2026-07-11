@@ -172,3 +172,6 @@ CREATE TABLE IF NOT EXISTS job_roles (
     last_seen   TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE NULLS NOT DISTINCT (company_id, title, location)
 );
+-- Roles finder: when careers-page discovery last ran for a company (negative
+-- results are cached too — no re-searching a company for 14 days).
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS careers_checked_at TIMESTAMPTZ;

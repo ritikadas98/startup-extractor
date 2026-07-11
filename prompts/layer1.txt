@@ -9,4 +9,5 @@ Rules:
 - stage: one of pre-seed | seed | pre-series-a | series-a | series-b | series-c | growth | debt | unknown.
 - investors: every investor named, marking the lead if identified. type: vc | angel | corporate | family-office | accelerator | unknown.
 - website / careers_url / linkedin_url: only if stated in the article or trivially derivable from the company's stated domain; otherwise null. Do not invent URLs.
+- hiring_signals: is_hiring = true only if the article states or clearly implies the company is hiring or growing the team (e.g. "funds will be used to expand the team", "plans to double headcount", "hiring across engineering and product"). roles_mentioned: the functions/roles explicitly named (e.g. "engineering", "product", "sales"); empty array if none. team_expansion_notes: one sentence paraphrasing the stated plan (include numbers/timelines if given); empty string if none. Do not infer hiring from the funding itself.
 - confidence_score (0-1): how confident you are that the extraction is complete and the company is correctly identified.

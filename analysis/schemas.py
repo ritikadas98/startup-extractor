@@ -31,6 +31,11 @@ LAYER_SCHEMAS: dict[int, dict] = {
         "founders": {"type": "array", "items": _obj({"name": _s(), "role": _s()})},
         "employee_estimate": _s(),
         "total_funding_to_date_usd": {"type": "number", "nullable": True},
+        "hiring_signals": _obj({
+            "is_hiring": {"type": "boolean"},
+            "roles_mentioned": _arr_s(),
+            "team_expansion_notes": _s(),
+        }),
         "confidence_score": {"type": "number"},
     }, required=["is_funding_article", "company_name", "confidence_score"]),
 

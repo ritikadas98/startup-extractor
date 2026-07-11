@@ -70,6 +70,10 @@ NEXT, in order:
    no auth) with a flash-extraction fallback for plain careers pages; store in a
    `job_roles` table, rank via the 100-pt rubric. NO LinkedIn scraping (ToS). CLI:
    `find-roles --role "product" --location bangalore --funded-within 90`.
+   Layer 1 already extracts `hiring_signals` per article (is_hiring, roles_mentioned,
+   team_expansion_notes) — added 2026-07-11, so articles analyzed before that lack it.
+   Deferred to this phase: Telegram job channels + Reddit as conversation sources
+   (both have free APIs); X/Twitter rejected — read access starts at $200/month.
 5. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
    (read-only via Supabase anon key + RLS; pages: briefing, companies, company detail, search).
 6. Phase G: historical backfill — LAST, only after step 1's quality gate.

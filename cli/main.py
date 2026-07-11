@@ -123,6 +123,9 @@ def backfill_status():
         console.print("\n[bold]Both jobs idle.[/bold] Sweep is complete when coverage reaches "
                       "early Jul 2026 and 'pending' stops growing; pending articles still "
                       "waiting for text will be picked up by the next fetch run.")
+
+
+@app.command("fetch-text")
 def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this run")):
     """Download full article text for pending articles."""
     from scrapers.fetch_text import fetch_article_text

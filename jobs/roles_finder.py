@@ -173,6 +173,32 @@ def roles_for_company(conn, company: dict, deep: bool = False) -> tuple[list[dic
     return [], "none"
 
 
+CITY_SYNONYMS = {
+    "bangalore": "bengaluru", "bengaluru": "bengaluru",
+    "gurgaon": "gurugram", "gurugram": "gurugram",
+    "new delhi": "delhi", "delhi": "delhi", "ncr": "delhi",
+    "bombay": "mumbai", "mumbai": "mumbai",
+    "madras": "chennai", "chennai": "chennai",
+    "calcutta": "kolkata", "kolkata": "kolkata",
+}
+
+
+def _canon_city(text: str) -> str:
+    text = text.lower()
+    for alias, canon in CITY_SYNONYMS.items():
+        text = text.replace(alias, canon)
+    return text
+
+
+def location_matches(wanted: str | None, location: str | None) -> bool:
+    """Substring match that treats city aliases (Bangalore/Bengaluru…) as equal.
+    Remote roles match any location filter."""
+    if not wanted:
+        return True
+    loc = _canon_city(location or "")
+    return _canon_city(wanted) in loc or "remote" in loc
+
+
 def _recently_checked(company: dict, days: int = 14) -> bool:
     from datetime import datetime, timedelta, timezone
     ts = company.get("careers_checked_at")

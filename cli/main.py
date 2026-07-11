@@ -165,7 +165,7 @@ def find_roles(role: str = typer.Option(None, help="Title keyword filter, e.g. '
                limit: int = typer.Option(10, help="Max companies to check"),
                deep: bool = typer.Option(False, help="AI-search for careers pages when unknown (~₹3/company)")):
     """Live job openings at freshly-funded startups (Phase E roles finder)."""
-    from jobs.roles_finder import roles_for_company, store_roles
+    from jobs.roles_finder import roles_for_company, store_roles, location_matches
     from database import db
 
     with db.get_conn() as conn:
@@ -177,14 +177,17 @@ def find_roles(role: str = typer.Option(None, help="Title keyword filter, e.g. '
             raise typer.Exit()
         console.print(f"Checking {len(companies)} recently funded companies…\n")
         shown = 0
+        near_misses = []
         for c in companies:
             roles, kind = roles_for_company(conn, dict(c), deep=deep)
             store_roles(conn, c["id"], roles, kind)
             conn.commit()
             matches = [r for r in roles
                        if (not role or role.lower() in r["title"].lower())
-                       and (not location or location.lower() in (r.get("location") or "").lower())]
+                       and location_matches(location, r.get("location"))]
             if not matches:
+                if roles:
+                    near_misses.append(f"{c['name']} ({len(roles)} openings)")
                 continue
             shown += 1
             console.print(f"[bold]{c['name']}[/bold]  [dim]({c['hq_city'] or '?'} · "
@@ -196,8 +199,12 @@ def find_roles(role: str = typer.Option(None, help="Title keyword filter, e.g. '
                     console.print(f"    [dim]{r['url']}[/dim]")
             console.print()
         if not shown:
-            console.print("[yellow]No matching open roles found. Try --deep to discover "
-                          "careers pages via AI search, or widen the filters.[/yellow]")
+            console.print("[yellow]No open roles matched the filters.[/yellow]")
+            if near_misses:
+                console.print("Openings exist but didn't match: " + ", ".join(near_misses))
+            else:
+                console.print("No careers pages known yet — try --deep to discover them "
+                              "via AI search (~₹3/company).")
 
 
 @app.command()

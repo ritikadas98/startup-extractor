@@ -94,7 +94,33 @@ def backfill_discover(
                   f"{total_dup} duplicates skipped")
 
 
-@app.command("fetch-text")
+@app.command("backfill-status")
+def backfill_status():
+    """Are the historical sweep / text-download jobs still running, and how far along?"""
+    import subprocess
+    from database import db
+
+    def alive(pattern: str) -> bool:
+        return subprocess.run(["pgrep", "-f", pattern], capture_output=True).returncode == 0
+
+    sweep = alive("backfill-discover")
+    fetch = alive("cli.main fetch-text")
+    console.print(f"discovery sweep: {'[green]RUNNING[/green]' if sweep else '[dim]not running[/dim]'}")
+    console.print(f"text download:   {'[green]RUNNING[/green]' if fetch else '[dim]not running[/dim]'}")
+    with db.get_conn() as conn:
+        r = conn.execute(
+            "SELECT count(*) n, min(published_at) lo, max(published_at) hi FROM articles"
+        ).fetchone()
+        by = conn.execute(
+            "SELECT processing_status s, count(*) c FROM articles GROUP BY 1 ORDER BY 1"
+        ).fetchall()
+    console.print(f"\narticles: {r['n']}  (published {r['lo']:%d %b %Y} → {r['hi']:%d %b %Y})")
+    for row in by:
+        console.print(f"  {row['s']}: {row['c']}")
+    if not sweep and not fetch:
+        console.print("\n[bold]Both jobs idle.[/bold] Sweep is complete when coverage reaches "
+                      "early Jul 2026 and 'pending' stops growing; pending articles still "
+                      "waiting for text will be picked up by the next fetch run.")
 def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this run")):
     """Download full article text for pending articles."""
     from scrapers.fetch_text import fetch_article_text

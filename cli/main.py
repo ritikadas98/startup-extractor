@@ -72,14 +72,16 @@ def backfill_discover(
     gn = load_scrapers(only="google_news")["google_news"]
     lo, hi = date.fromisoformat(start), date.fromisoformat(end)
     total_new = total_dup = 0
-    with db.get_conn() as conn:
-        if _gate(conn, "pipeline_enabled"):
-            return
-        cur = lo
-        while cur < hi:
-            nxt = min(cur + timedelta(days=window), hi)
+    cur = lo
+    while cur < hi:
+        nxt = min(cur + timedelta(days=window), hi)
+        articles = gn.discover_window(cur, nxt)  # slow part — no DB conn held
+        # fresh connection per window: Supabase drops connections held for hours
+        with db.get_conn() as conn:
+            if _gate(conn, "pipeline_enabled"):
+                return
             new = dup = 0
-            for a in gn.discover_window(cur, nxt):
+            for a in articles:
                 if not a.url:
                     continue
                 if db.insert_article(conn, a, url_hash(a.url)) is None:
@@ -87,9 +89,9 @@ def backfill_discover(
                 else:
                     new += 1
             conn.commit()
-            console.print(f"{cur} → {nxt}: [green]{new} new[/green], {dup} dup")
-            total_new += new; total_dup += dup
-            cur = nxt
+        console.print(f"{cur} → {nxt}: [green]{new} new[/green], {dup} dup")
+        total_new += new; total_dup += dup
+        cur = nxt
     console.print(f"[bold green]{total_new} new articles stored[/bold green], "
                   f"{total_dup} duplicates skipped")
 
@@ -126,23 +128,30 @@ def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this ru
     from scrapers.fetch_text import fetch_article_text
     from database import db
 
-    ok, failed = 0, 0
-    with db.get_conn() as conn:
-        if _gate(conn, "pipeline_enabled"):
-            return
-        pending = db.get_articles_by_status(conn, "pending", limit)
-        for art in pending:
-            text = fetch_article_text(art["url"])
-            if text:
-                db.set_article_text(conn, art["id"], text)
-                ok += 1
-            else:
-                db.set_article_status(conn, art["id"], "pending",
-                                      "text extraction failed", bump_retry=True)
-                failed += 1
-            conn.commit()
-    console.print(f"[green]{ok} articles fetched[/green], {failed} failed "
-                  f"(of {len(pending)} pending)")
+    ok, failed, seen = 0, 0, set()
+    remaining = limit
+    # batches of 25 on fresh connections: Supabase drops connections held for hours
+    while remaining > 0:
+        with db.get_conn() as conn:
+            if _gate(conn, "pipeline_enabled"):
+                return
+            pending = [a for a in db.get_articles_by_status(conn, "pending", min(25, remaining))
+                       if a["id"] not in seen]
+            if not pending:
+                break
+            for art in pending:
+                seen.add(art["id"])
+                text = fetch_article_text(art["url"])
+                if text:
+                    db.set_article_text(conn, art["id"], text)
+                    ok += 1
+                else:
+                    db.set_article_status(conn, art["id"], "pending",
+                                          "text extraction failed", bump_retry=True)
+                    failed += 1
+                conn.commit()
+        remaining -= len(pending)
+    console.print(f"[green]{ok} articles fetched[/green], {failed} failed")
 
 
 @app.command()

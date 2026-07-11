@@ -94,7 +94,13 @@ def find_careers_url_via_search(company: dict) -> str | None:
                 tools=[types.Tool(google_search=types.GoogleSearch())], temperature=0.0),
         )
         m = re.search(r"https?://\S+", r.text or "")
-        return m.group(0).rstrip(".,)") if m else None
+        if not m:
+            return None
+        url = m.group(0).rstrip(".,)")
+        # grounded answers often carry Google redirect URLs
+        # (vertexaisearch.cloud.google.com/...) — resolve to the real page
+        resp = http.get(url)
+        return str(resp.url) if resp.status_code == 200 else None
     except Exception as e:
         log.warning("careers search failed for %s: %s", company["name"], e)
         return None
@@ -128,8 +134,8 @@ def extract_roles_from_page(url: str) -> list[dict] | None:
         out = json.loads(r.text)
         if not out.get("is_careers_page"):
             return None
-        return [{"title": x.get("title", ""), "location": x.get("location"),
-                 "department": x.get("department"), "url": url} for x in out["roles"]]
+        return [{"title": x.get("title", ""), "location": _clean(x.get("location")),
+                 "department": _clean(x.get("department")), "url": url} for x in out["roles"]]
     except Exception as e:
         log.info("careers page not usable (%s): %s", url, e)
         return None
@@ -205,10 +211,17 @@ def _recently_checked(company: dict, days: int = 14) -> bool:
     return bool(ts) and ts > datetime.now(timezone.utc) - timedelta(days=days)
 
 
+def _clean(v):
+    """Models sometimes emit the literal string 'null' — treat as absent."""
+    return None if not v or str(v).strip().lower() in db.NULLISH else v
+
+
 def store_roles(conn, company_id: int, roles: list[dict], kind: str) -> int:
     n = 0
     for r in roles:
-        if not r.get("title"):
+        r["location"] = _clean(r.get("location"))
+        r["department"] = _clean(r.get("department"))
+        if not _clean(r.get("title")):
             continue
         conn.execute(
             """

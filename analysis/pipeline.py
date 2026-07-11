@@ -37,22 +37,44 @@ def process_article(conn, article: dict) -> dict:
         # Layer 1 gates everything: non-funding articles stop here
         if 1 in completed:
             results[1] = db.get_layer_result(conn, article_id, 1)
+            r1 = None  # already persisted in an earlier run
         else:
             r1 = call_layer(1, text, metadata)
             results[1] = r1.result
             total_cost += r1.cost_usd
             layers_run += 1
-            company_id = _store_extraction(conn, article_id, r1.result)
-            db.store_layer_result(conn, article_id, company_id, r1)
-            conn.commit()
 
         l1 = results[1]
         if not l1.get("is_funding_article", True) or l1.get("confidence_score", 1.0) < MIN_CONFIDENCE:
+            if r1 is not None:
+                db.store_layer_result(conn, article_id, None, r1)
             db.set_article_status(conn, article_id, "complete",
                                   "skipped: not a funding article / low confidence")
             conn.commit()
             log.info("article %s: layer 1 gated out (%s)", article_id, l1.get("company_name"))
             return {"layers_run": layers_run, "cost_usd": total_cost, "skipped": "gated by layer 1"}
+
+        # Story-level dedup: same event already deep-analyzed under another URL →
+        # keep the Layer 1 facts, link to the canonical article, skip layers 2-8.
+        canonical = db.find_canonical_article(
+            conn, db.normalize_name(l1.get("company_name") or ""),
+            l1.get("stage"), l1.get("amount_usd"),
+            article.get("published_at"), article_id)
+        if canonical:
+            if r1 is not None:
+                db.store_layer_result(
+                    conn, article_id, _company_id_for(conn, l1.get("company_name", "")), r1)
+            db.mark_duplicate(conn, article_id, canonical)
+            conn.commit()
+            log.info("article %s: duplicate of article %s (%s)",
+                     article_id, canonical, l1.get("company_name"))
+            return {"layers_run": layers_run, "cost_usd": total_cost,
+                    "skipped": f"duplicate of {canonical}"}
+
+        if r1 is not None:
+            company_id = _store_extraction(conn, article_id, l1)
+            db.store_layer_result(conn, article_id, company_id, r1)
+            conn.commit()
 
         company_id = _company_id_for(conn, l1.get("company_name", ""))
 

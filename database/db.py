@@ -132,6 +132,59 @@ def get_layer_result(conn: psycopg.Connection, article_id: int, layer_number: in
     return row["result_json"] if row else None
 
 
+# --- story-level dedup ---
+
+def find_canonical_article(conn: psycopg.Connection, name_normalized: str,
+                           stage: str | None, amount_usd: float | None,
+                           published_at, exclude_article_id: int,
+                           window_days: int = 14) -> int | None:
+    """Deep-analyzed article covering the same funding event, if one exists.
+
+    Same company + compatible stage + amount within 30% (nulls match anything)
+    + published within window_days. Returns the canonical article id or None.
+    """
+    if not name_normalized:
+        return None
+    row = conn.execute(
+        """
+        SELECT a.id
+        FROM funding_rounds fr
+        JOIN companies c ON c.id = fr.company_id
+        JOIN articles a ON a.id = fr.article_id
+        WHERE c.name_normalized = %(norm)s
+          AND a.id <> %(aid)s
+          AND a.processing_status = 'complete'
+          AND EXISTS (SELECT 1 FROM analysis_results r
+                      WHERE r.article_id = a.id AND r.layer_number = 8)
+          AND (%(pub)s::timestamptz IS NULL OR a.published_at IS NULL
+               OR abs(extract(epoch FROM (a.published_at - %(pub)s::timestamptz)))
+                  <= %(window)s * 86400)
+          AND (fr.stage IS NULL OR %(stage)s::text IS NULL
+               OR fr.stage = %(stage)s OR fr.stage = 'unknown' OR %(stage)s = 'unknown')
+          AND (fr.amount_usd IS NULL OR %(amount)s::real IS NULL
+               OR fr.amount_usd <= 0 OR %(amount)s <= 0
+               OR abs(fr.amount_usd - %(amount)s)
+                  / greatest(fr.amount_usd, %(amount)s::real) <= 0.3)
+        ORDER BY a.published_at DESC NULLS LAST
+        LIMIT 1
+        """,
+        {"norm": name_normalized, "aid": exclude_article_id, "pub": published_at,
+         "stage": stage, "amount": amount_usd, "window": window_days},
+    ).fetchone()
+    return row["id"] if row else None
+
+
+def mark_duplicate(conn: psycopg.Connection, article_id: int, canonical_id: int) -> None:
+    conn.execute(
+        """
+        UPDATE articles SET processing_status = 'duplicate', duplicate_of = %s,
+               processing_error = NULL, updated_at = now()
+        WHERE id = %s
+        """,
+        (canonical_id, article_id),
+    )
+
+
 # --- pipeline settings (control switches) ---
 
 def get_setting(conn: psycopg.Connection, key: str, default: str = "") -> str:

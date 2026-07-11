@@ -63,9 +63,10 @@ NEXT, in order:
 1. Quality gate: **mostly PASS** (user verdict 2026-07-11 on 3-article review). Note for
    any UI rendering analyses: Postgres JSONB loses JSON key order (sorts by length) —
    render fields in `analysis/schemas.py` order, or "answer" shows before "question".
-2. **Story-level dedup before backfill** — the same funding round arrives from ~3-5
-   outlets and each copy currently gets a full $0.205 analysis; URL dedup can't catch
-   this. Biggest cost lever: ~3-4x savings on daily runs and backfill.
+2. Story-level dedup: **DONE 2026-07-11** — after Layer 1, `find_canonical_article`
+   (same company + compatible stage + amount ±30% + 14-day window vs a deep-analyzed
+   article) marks copies `duplicate` (articles.duplicate_of), keeps L1 facts, skips
+   layers 2-8 and the extra funding_rounds row. Duplicate copy costs ~$0.003 vs $0.205.
 3. Phase C: embeddings (`gemini-embedding-001`, 768-dim, `embeddings` table exists) +
    knowledge graph (`knowledge/` — rule detectors: same_investor, competitor via Layer-3
    alternatives[], same_business_model, same_stage_quarter; AI-assisted same_market).

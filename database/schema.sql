@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS articles (
     published_at      TIMESTAMPTZ,
     article_text      TEXT,
     word_count        INTEGER,
-    processing_status TEXT NOT NULL DEFAULT 'pending',  -- pending|fetched|processing|complete|failed
+    processing_status TEXT NOT NULL DEFAULT 'pending',  -- pending|fetched|processing|complete|failed|duplicate
     processing_error  TEXT,
     retry_count       INTEGER NOT NULL DEFAULT 0,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -153,3 +153,8 @@ INSERT INTO pipeline_settings (key, value) VALUES
     ('job_mode',         'true'),        -- Phase E: layer-7/roles features
     ('monthly_budget_usd', '25')         -- analyze refuses to start past this
 ON CONFLICT (key) DO NOTHING;
+
+-- Story-level dedup: same funding event covered by several outlets. The first
+-- deep-analyzed article is canonical; later copies get status 'duplicate'.
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS duplicate_of BIGINT REFERENCES articles(id);
+CREATE INDEX IF NOT EXISTS idx_articles_duplicate_of ON articles(duplicate_of);

@@ -131,19 +131,19 @@ def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this ru
     from scrapers.fetch_text import fetch_article_text
     from database import db
 
-    ok, failed, seen = 0, 0, set()
+    ok, failed = 0, 0
     remaining = limit
-    # batches of 25 on fresh connections: Supabase drops connections held for hours
+    # batches of 25 on fresh connections: Supabase drops connections held for hours.
+    # Failing articles bump retry_count and drop out of the query at 3 — the loop
+    # ends when no eligible pending articles remain.
     while remaining > 0:
         with db.get_conn() as conn:
             if _gate(conn, "pipeline_enabled"):
                 return
-            pending = [a for a in db.get_articles_by_status(conn, "pending", min(25, remaining))
-                       if a["id"] not in seen]
+            pending = db.get_articles_by_status(conn, "pending", min(25, remaining))
             if not pending:
                 break
             for art in pending:
-                seen.add(art["id"])
                 text = fetch_article_text(art["url"])
                 if text:
                     db.set_article_text(conn, art["id"], text)

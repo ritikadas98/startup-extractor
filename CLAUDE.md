@@ -86,6 +86,11 @@ NEXT, in order:
    rubric), Telegram + Reddit conversation sources (free APIs; X rejected at $200/mo).
 6. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
    (read-only via Supabase anon key + RLS; pages: briefing, companies, company detail, search).
+   MAYBE (user, 2026-07-12): "chat with the knowledge base" via Vertex AI Search — the
+   only use for the ₹94.5k GenAI App Builder credit. ON HOLD because the user may move
+   projects to a new GCP account in Aug 2026; that credit is billing-account-bound and
+   would be left behind, killing this feature's funding. Decide after the Aug account
+   decision. Fallback search is pgvector (already built, free).
 7. Phase G: historical backfill — LAST, only after step 1's quality gate.
 
 ## Conventions

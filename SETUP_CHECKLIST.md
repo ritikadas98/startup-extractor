@@ -12,7 +12,7 @@ verified end-to-end:
 | GCS bucket | ✅ `startup-extractor-batch` (for the backfill later) |
 | GitHub | ✅ private repo `ritikadas98/startup-extractor`, commits authored by Ritika |
 | Daily automation | ✅ GitHub Actions, 06:00 IST, keyless GCP auth (WIF, no key file) |
-| GCP credits | ~₹1.22L available; the ₹28k free-trial credit **expires 20 Aug 2026** — use it first (it covers the backfill ~10×) |
+| GCP credits | ₹28k general trial credit (**expires 20 Aug 2026** — covers our Gemini usage; burn it on the backfill). ⚠️ The ₹94.5k "GenAI App Builder" credit likely does NOT cover our usage (scoped to Vertex AI Search, per Google support responses) — verify via the credit's terms link; expect ~₹4.5–6.5k/month on the card after 20 Aug |
 
 **Next action:** review analysis quality (`analyze` output) and tune prompts **before**
 any bulk processing — see CLAUDE.md "NEXT".

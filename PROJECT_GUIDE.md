@@ -165,9 +165,13 @@ with `set-budget` when the volume justifies it).
 **One-time historical backfill** (next phase): ~240 days of history at batch pricing
 (Vertex Batch Prediction runs at ~50% of interactive price) ≈ **₹20k**.
 
-**Credits available:** ₹27.9k expiring **20 Aug 2026** (the backfill should consume
-this one) + ₹94.5k valid to May 2027 (covers ~14–18 months of daily runs).
-**Expected out-of-pocket cost until late 2027: ₹0.**
+**Credits reality-check (corrected 2026-07-12):** the ₹27.9k signup credit (expires
+**20 Aug 2026**) is general-purpose and covers our Gemini usage — the backfill and
+daily runs until then are free. The ₹94.5k "GenAI App Builder" credit is likely
+scoped to a Google product we don't use (Vertex AI Search) — pending verification via
+its terms link in the billing console. **Plan for ~₹4.5–6.5k/month real cost from
+September**, unless model-routing optimization (Flash for more layers) brings it down,
+or a Google for Startups credit application succeeds.
 
 ---
 

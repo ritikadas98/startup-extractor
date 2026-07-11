@@ -84,32 +84,51 @@ class GoogleNewsRSS(BaseScraper):
         seen: set[str] = set()
         articles: list[ScrapedArticle] = []
         for query in self.queries:
-            # when: caps out around 30d; older windows need after:/before: queries
+            # when: caps out around 30d; older windows go through discover_window()
             q = f"{query} when:{days_back}d" if days_back <= 30 else query
-            parsed = parse_feed(RSS_SEARCH.format(query=quote(q)))
-            if parsed is None:
-                continue
-            for e in parsed.entries:
-                published = _entry_datetime(e)
-                if published and published < cutoff:
-                    continue
-                title = e.get("title", "")
-                if not looks_like_funding_news(title):
-                    continue
-                url = decode_google_news_url(e.get("link", ""))
-                if "news.google.com" in url:
-                    continue  # undecodable → unfetchable and undedupable; skip
-                if url in seen:
-                    continue
-                seen.add(url)
-                time.sleep(0.3)  # be gentle with the decode endpoint
-                # publisher name arrives in the <source> tag
-                publisher = e.get("source", {}).get("title", "")
-                articles.append(ScrapedArticle(
-                    url=url, title=title, source=self.name,
-                    published_at=published,
-                    summary=publisher,
-                ))
+            self._collect(q, seen, articles, cutoff=cutoff)
         log.info("google_news: %d unique funding candidates across %d queries",
                  len(articles), len(self.queries))
         return articles
+
+    def discover_window(self, start, end) -> list[ScrapedArticle]:
+        """Historical discovery for the backfill: after:/before: date operators.
+
+        start/end are dates; the window is [start, end). Google returns at most
+        ~100 entries per query, so keep windows to ~a week.
+        """
+        seen: set[str] = set()
+        articles: list[ScrapedArticle] = []
+        for query in self.queries:
+            q = f"{query} after:{start.isoformat()} before:{end.isoformat()}"
+            self._collect(q, seen, articles)
+        log.info("google_news window %s→%s: %d unique funding candidates",
+                 start, end, len(articles))
+        return articles
+
+    def _collect(self, q: str, seen: set[str], articles: list[ScrapedArticle],
+                 cutoff: datetime | None = None) -> None:
+        parsed = parse_feed(RSS_SEARCH.format(query=quote(q)))
+        if parsed is None:
+            return
+        for e in parsed.entries:
+            published = _entry_datetime(e)
+            if cutoff and published and published < cutoff:
+                continue
+            title = e.get("title", "")
+            if not looks_like_funding_news(title):
+                continue
+            url = decode_google_news_url(e.get("link", ""))
+            if "news.google.com" in url:
+                continue  # undecodable → unfetchable and undedupable; skip
+            if url in seen:
+                continue
+            seen.add(url)
+            time.sleep(0.3)  # be gentle with the decode endpoint
+            # publisher name arrives in the <source> tag
+            publisher = e.get("source", {}).get("title", "")
+            articles.append(ScrapedArticle(
+                url=url, title=title, source=self.name,
+                published_at=published,
+                summary=publisher,
+            ))

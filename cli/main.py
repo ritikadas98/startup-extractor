@@ -55,6 +55,45 @@ def scrape(source: str = typer.Option(None, help="One source name, or all enable
     console.print(f"[green]{new} new articles stored[/green], {dup} duplicates skipped")
 
 
+@app.command("backfill-discover")
+def backfill_discover(
+        start: str = typer.Option(..., help="Window start, YYYY-MM-DD"),
+        end: str = typer.Option(..., help="Window end (exclusive), YYYY-MM-DD"),
+        window: int = typer.Option(7, help="Days per Google News query window")):
+    """Phase G: discover historical articles via date-windowed Google News queries.
+
+    Idempotent — URLs already seen are skipped, so it's safe to re-run or resume.
+    """
+    from datetime import date, timedelta
+    from scrapers.registry import load_scrapers
+    from dedup.deduplicator import url_hash
+    from database import db
+
+    gn = load_scrapers(only="google_news")["google_news"]
+    lo, hi = date.fromisoformat(start), date.fromisoformat(end)
+    total_new = total_dup = 0
+    with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled"):
+            return
+        cur = lo
+        while cur < hi:
+            nxt = min(cur + timedelta(days=window), hi)
+            new = dup = 0
+            for a in gn.discover_window(cur, nxt):
+                if not a.url:
+                    continue
+                if db.insert_article(conn, a, url_hash(a.url)) is None:
+                    dup += 1
+                else:
+                    new += 1
+            conn.commit()
+            console.print(f"{cur} → {nxt}: [green]{new} new[/green], {dup} dup")
+            total_new += new; total_dup += dup
+            cur = nxt
+    console.print(f"[bold green]{total_new} new articles stored[/bold green], "
+                  f"{total_dup} duplicates skipped")
+
+
 @app.command("fetch-text")
 def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this run")):
     """Download full article text for pending articles."""

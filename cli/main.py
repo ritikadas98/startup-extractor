@@ -131,29 +131,41 @@ def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this ru
     from scrapers.fetch_text import fetch_article_text
     from database import db
 
+    import psycopg as _psycopg
+
     ok, failed = 0, 0
     remaining = limit
-    # batches of 25 on fresh connections: Supabase drops connections held for hours.
-    # Failing articles bump retry_count and drop out of the query at 3 — the loop
-    # ends when no eligible pending articles remain.
+    db_errors = 0
+    # batches of 25 on fresh connections; a dropped connection mid-batch is caught
+    # and the loop reconnects and continues (commit is per-article, so at most the
+    # in-flight article is retried). Failing articles bump retry_count and drop out
+    # of the query at 3 — the loop ends when no eligible pending articles remain.
     while remaining > 0:
-        with db.get_conn() as conn:
-            if _gate(conn, "pipeline_enabled"):
-                return
-            pending = db.get_articles_by_status(conn, "pending", min(25, remaining))
-            if not pending:
-                break
-            for art in pending:
-                text = fetch_article_text(art["url"])
-                if text:
-                    db.set_article_text(conn, art["id"], text)
-                    ok += 1
-                else:
-                    db.set_article_status(conn, art["id"], "pending",
-                                          "text extraction failed", bump_retry=True)
-                    failed += 1
-                conn.commit()
-        remaining -= len(pending)
+        try:
+            with db.get_conn() as conn:
+                if _gate(conn, "pipeline_enabled"):
+                    return
+                pending = db.get_articles_by_status(conn, "pending", min(25, remaining))
+                if not pending:
+                    break
+                for art in pending:
+                    text = fetch_article_text(art["url"])
+                    if text:
+                        db.set_article_text(conn, art["id"], text)
+                        ok += 1
+                    else:
+                        db.set_article_status(conn, art["id"], "pending",
+                                              "text extraction failed", bump_retry=True)
+                        failed += 1
+                    conn.commit()
+            remaining -= len(pending)
+            db_errors = 0
+        except _psycopg.OperationalError as e:
+            db_errors += 1
+            if db_errors >= 5:
+                console.print(f"[red]DB unreachable after 5 straight attempts: {e}[/red]")
+                raise
+            console.print(f"[yellow]DB connection dropped — reconnecting ({db_errors}/5)[/yellow]")
     console.print(f"[green]{ok} articles fetched[/green], {failed} failed")
 
 

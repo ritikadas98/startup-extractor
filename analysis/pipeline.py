@@ -12,8 +12,13 @@ MIN_CONFIDENCE = 0.3
 PRIOR_CONTEXT = {2: [1], 3: [1], 4: [1, 3], 5: [1, 3], 6: [1, 3], 7: [1, 3], 8: [1, 3]}
 
 
-def process_article(conn, article: dict) -> dict:
-    """Run all missing layers for one article. Returns {layers_run, cost_usd, skipped}."""
+def process_article(conn, article: dict, extract_only: bool = False) -> dict:
+    """Run all missing layers for one article. Returns {layers_run, cost_usd, skipped}.
+
+    extract_only: stop after Layer 1 (facts + dedup + hiring signals stored); the
+    article is marked complete with a note, and layers 2-8 can be added later via
+    `analyze --article-id N` (resume-safe upsert fills only what's missing).
+    """
     article_id = article["id"]
     completed = db.get_completed_layers(conn, article_id)
     if len(completed) == 8:
@@ -75,6 +80,13 @@ def process_article(conn, article: dict) -> dict:
             company_id = _store_extraction(conn, article_id, l1)
             db.store_layer_result(conn, article_id, company_id, r1)
             conn.commit()
+
+        if extract_only:
+            db.set_article_status(conn, article_id, "complete",
+                                  "extract-only: layers 2-8 deferred")
+            conn.commit()
+            log.info("article %s: extract-only (%s)", article_id, l1.get("company_name"))
+            return {"layers_run": layers_run, "cost_usd": total_cost, "skipped": "extract-only"}
 
         company_id = _company_id_for(conn, l1.get("company_name", ""))
 

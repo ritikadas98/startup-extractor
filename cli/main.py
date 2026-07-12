@@ -171,20 +171,27 @@ def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this ru
 
 @app.command()
 def analyze(article_id: int = typer.Option(None, help="Analyze one specific article"),
-            limit: int = typer.Option(5, help="Max articles to analyze this run")):
+            limit: int = typer.Option(5, help="Max articles to analyze this run"),
+            since: str = typer.Option(None, help="Only articles published on/after YYYY-MM-DD"),
+            extract_only: bool = typer.Option(False, "--extract-only",
+                help="Stop after Layer 1 (facts+dedup only, ~₹1/article); layers 2-8 can be added later")):
     """Run the 8-layer Gemini analysis on fetched articles."""
+    import psycopg as _psycopg
     from analysis.pipeline import process_article
     from database import db
 
-    with db.get_conn() as conn:
-        if _gate(conn, "pipeline_enabled", "analysis_enabled"):
-            return
+    def _over_budget(conn) -> bool:
         budget = float(db.get_setting(conn, "monthly_budget_usd", "0") or 0)
         spent = db.month_spend_usd(conn)
         if budget and spent >= budget:
-            console.print(f"[yellow]Skipped: monthly budget reached "
+            console.print(f"[yellow]Stopped: monthly budget reached "
                           f"(${spent:.2f} of ${budget:.2f}) — raise it with "
                           f"`set-budget` or wait for next month.[/yellow]")
+            return True
+        return False
+
+    with db.get_conn() as conn:
+        if _gate(conn, "pipeline_enabled", "analysis_enabled") or _over_budget(conn):
             return
         db.requeue_stuck_articles(conn)
         conn.commit()
@@ -193,19 +200,37 @@ def analyze(article_id: int = typer.Option(None, help="Analyze one specific arti
             if not art:
                 console.print(f"[red]No article with id {article_id}[/red]")
                 raise typer.Exit(1)
-            articles = [art]
-        else:
-            articles = db.get_articles_by_status(conn, "fetched", limit)
+            r = process_article(conn, art, extract_only=extract_only)
+            console.print(f"[green]1 article processed[/green], cost ${r['cost_usd']:.4f}")
+            return
 
-        total = 0.0
-        for art in articles:
-            try:
-                r = process_article(conn, art)
-                total += r["cost_usd"]
-            except Exception:
-                continue  # already logged + marked failed; keep going
-        console.print(f"[green]{len(articles)} articles processed[/green], "
-                      f"total cost ${total:.4f}")
+    # batch mode: fresh connection per chunk + reconnect on drops (long runs)
+    processed, total, db_errors = 0, 0.0, 0
+    while processed < limit:
+        try:
+            with db.get_conn() as conn:
+                if _over_budget(conn):
+                    break
+                batch = db.get_articles_by_status(conn, "fetched",
+                                                  min(5, limit - processed), since)
+                if not batch:
+                    break
+                for art in batch:
+                    try:
+                        r = process_article(conn, art, extract_only=extract_only)
+                        total += r["cost_usd"]
+                    except Exception:
+                        continue  # already logged + marked failed; keep going
+                processed += len(batch)
+            db_errors = 0
+        except _psycopg.OperationalError as e:
+            db_errors += 1
+            if db_errors >= 5:
+                console.print(f"[red]DB unreachable after 5 straight attempts: {e}[/red]")
+                raise
+            console.print(f"[yellow]DB connection dropped — reconnecting ({db_errors}/5)[/yellow]")
+    console.print(f"[green]{processed} articles processed[/green], "
+                  f"total cost ${total:.4f}")
 
 
 @app.command("find-roles")

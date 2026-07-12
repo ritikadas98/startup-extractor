@@ -49,14 +49,16 @@ def is_url_seen(conn: psycopg.Connection, url_hash: str) -> bool:
     ).fetchone() is not None
 
 
-def get_articles_by_status(conn: psycopg.Connection, status: str, limit: int = 100) -> list[dict]:
+def get_articles_by_status(conn: psycopg.Connection, status: str, limit: int = 100,
+                           since=None) -> list[dict]:
     return conn.execute(
         """
         SELECT id, url, title, source, published_at, article_text, retry_count
         FROM articles WHERE processing_status = %s AND retry_count < 3
+          AND (%s::timestamptz IS NULL OR published_at >= %s)
         ORDER BY published_at DESC NULLS LAST LIMIT %s
         """,
-        (status, limit),
+        (status, since, since, limit),
     ).fetchall()
 
 

@@ -9,6 +9,7 @@ type Row = {
     one_minute_summary?: string;
     key_takeaways?: string[];
   };
+  company_id: number | null;
   created_at: string;
   articles: {
     id: number;
@@ -23,32 +24,38 @@ export default async function Briefing() {
   const { data, error } = await supabase()
     .from("analysis_results")
     .select(
-      "result_json, created_at, articles(id, title, url, source, published_at)"
+      "result_json, company_id, created_at, articles(id, title, url, source, published_at)"
     )
     .eq("layer_number", 2)
     .order("created_at", { ascending: false })
     .limit(15);
 
   if (error) {
-    return <p className="text-red-600 text-sm">Could not load briefing: {error.message}</p>;
+    return <p className="text-red-700 text-sm">Could not load briefing: {error.message}</p>;
   }
   const rows = (data ?? []) as unknown as Row[];
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Briefing</h1>
-        <p className="text-sm text-neutral-500">
-          Latest analyzed funding stories, newest first.
-        </p>
+        <h1 className="text-2xl font-bold text-neutral-900">Briefing</h1>
+        <p className="text-sm text-neutral-600">Latest analyzed funding stories, newest first.</p>
       </div>
       {rows.length === 0 && (
-        <p className="text-sm text-neutral-500">No analyses yet — the pipeline runs every morning.</p>
+        <p className="text-sm text-neutral-600">No analyses yet — the pipeline runs every morning.</p>
       )}
       {rows.map((r, i) => (
         <article key={i} className="rounded-lg border border-neutral-200 bg-white p-5">
-          <h2 className="font-semibold text-lg leading-snug">{r.articles?.title}</h2>
-          <p className="mt-1 text-xs text-neutral-500">
+          <h2 className="text-lg font-semibold leading-snug text-neutral-900">
+            {r.company_id ? (
+              <Link href={`/companies/${r.company_id}`} className="hover:text-emerald-800 hover:underline">
+                {r.articles?.title}
+              </Link>
+            ) : (
+              r.articles?.title
+            )}
+          </h2>
+          <p className="mt-1 text-xs text-neutral-600">
             {r.articles?.source}
             {r.articles?.published_at &&
               " · " +
@@ -58,26 +65,36 @@ export default async function Briefing() {
                   year: "numeric",
                 })}
           </p>
-          <p className="mt-3 text-sm leading-relaxed">
+          <p className="mt-3 text-sm leading-relaxed text-neutral-800">
             {r.result_json.one_minute_summary || r.result_json.what_happened}
           </p>
           {r.result_json.key_takeaways && r.result_json.key_takeaways.length > 0 && (
-            <ul className="mt-3 list-disc pl-5 text-sm space-y-1 text-neutral-700">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-neutral-700">
               {r.result_json.key_takeaways.slice(0, 4).map((t, n) => (
                 <li key={n}>{t}</li>
               ))}
             </ul>
           )}
-          {r.articles?.url && (
-            <Link
-              href={r.articles.url}
-              rel="noopener"
-              target="_blank"
-              className="mt-3 inline-block text-xs text-emerald-700 hover:underline"
-            >
-              original article ↗
-            </Link>
-          )}
+          <div className="mt-4 flex gap-4 text-xs font-medium">
+            {r.company_id && (
+              <Link
+                href={`/companies/${r.company_id}`}
+                className="rounded-md bg-emerald-700 px-2.5 py-1 text-white hover:bg-emerald-800"
+              >
+                Full 8-layer analysis →
+              </Link>
+            )}
+            {r.articles?.url && (
+              <Link
+                href={r.articles.url}
+                rel="noopener"
+                target="_blank"
+                className="py-1 text-emerald-700 hover:underline"
+              >
+                original article ↗
+              </Link>
+            )}
+          </div>
         </article>
       ))}
     </div>

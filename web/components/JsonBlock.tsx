@@ -42,7 +42,7 @@ function Value({ v, keyName }: { v: unknown; keyName?: string }) {
       <div className="space-y-1">
         {entries.map(([k, val]) => (
           <div key={k} className="grid grid-cols-[9rem_1fr] gap-2">
-            <span className="text-xs font-medium text-neutral-500 pt-0.5">{humanize(k)}</span>
+            <span className="text-xs font-medium text-neutral-600 pt-0.5">{humanize(k)}</span>
             <Value v={val} keyName={k} />
           </div>
         ))}
@@ -64,7 +64,7 @@ export default function JsonBlock({
       {orderedEntries(data, order).map(([k, v]) =>
         isNullish(v) ? null : (
           <div key={k}>
-            <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-1">
+            <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600 mb-1">
               {humanize(k)}
             </div>
             <Value v={v} keyName={k} />

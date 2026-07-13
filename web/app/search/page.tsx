@@ -41,7 +41,7 @@ export default async function Search({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Search</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-neutral-600">
           Full-text search across every analysis layer (e.g. “quick commerce”, “pricing moat”, “Peak XV”).
         </p>
       </div>
@@ -54,14 +54,14 @@ export default async function Search({
         />
         <button className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm text-white">Search</button>
       </form>
-      {error && <p className="text-sm text-red-600">Search failed: {error}</p>}
+      {error && <p className="text-sm text-red-700">Search failed: {error}</p>}
       {q && !error && hits.length === 0 && (
-        <p className="text-sm text-neutral-500">No results for “{q}”.</p>
+        <p className="text-sm text-neutral-600">No results for “{q}”.</p>
       )}
       <div className="space-y-4">
         {hits.map((h, i) => (
           <div key={i} className="rounded-lg border border-neutral-200 bg-white p-4">
-            <div className="text-xs text-neutral-500">
+            <div className="text-xs text-neutral-600">
               {LAYER_TITLES[h.layer_number]} · {h.articles?.source}
             </div>
             <div className="mt-0.5 font-medium">

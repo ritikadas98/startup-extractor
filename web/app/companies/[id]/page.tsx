@@ -35,7 +35,7 @@ export default async function CompanyDetail({
   ]);
 
   if (!company) {
-    return <p className="text-sm text-neutral-500">Company not found.</p>;
+    return <p className="text-sm text-neutral-600">Company not found.</p>;
   }
 
   // group layers by article (a company can have several analyzed articles)
@@ -48,11 +48,11 @@ export default async function CompanyDetail({
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/companies" className="text-xs text-neutral-500 hover:underline">
+        <Link href="/companies" className="text-xs text-neutral-600 hover:underline">
           ← all companies
         </Link>
         <h1 className="mt-1 text-2xl font-bold">{company.name}</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-neutral-600">
           {[company.hq_city, company.industry, company.business_model]
             .filter(Boolean)
             .join(" · ") || "—"}
@@ -70,10 +70,10 @@ export default async function CompanyDetail({
       </div>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-600">
           Funding rounds
         </h2>
-        {(rounds ?? []).length === 0 && <p className="text-sm text-neutral-500">None recorded.</p>}
+        {(rounds ?? []).length === 0 && <p className="text-sm text-neutral-600">None recorded.</p>}
         <ul className="space-y-2 text-sm">
           {(rounds ?? []).map((r: any, i: number) => (
             <li key={i}>
@@ -82,7 +82,7 @@ export default async function CompanyDetail({
               {r.amount_raw || (r.amount_usd ? `$${(r.amount_usd / 1_000_000).toFixed(1)}M` : "undisclosed")}
               {r.announced_date && ` · ${r.announced_date}`}
               {r.round_investors?.length > 0 && (
-                <span className="text-neutral-500">
+                <span className="text-neutral-600">
                   {" · "}
                   {r.round_investors
                     .map((ri: any) => ri.investors?.name + (ri.is_lead ? " (lead)" : ""))

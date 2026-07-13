@@ -4,6 +4,7 @@
    ground, so we do NOT follow the OS dark-mode preference (it made headers
    and card text unreadable for dark-mode users). */
 :root {
+  color-scheme: only light; /* opt out of Chrome auto-dark */
   --background: #fafaf9;
   --foreground: #1c1917;
 }

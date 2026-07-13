@@ -10,7 +10,12 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "startup_intel",
   description: "Indian startup funding intelligence & PM knowledge base",
+  // disables the Dark Reader browser extension on this site (it was inverting
+  // our light theme into unreadable grey-on-black)
+  other: { "darkreader-lock": "true" },
 };
+
+export const viewport = { colorScheme: "light" as const };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

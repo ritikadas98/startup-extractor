@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import Pager from "@/components/Pager";
 
 type Row = {
   result_json: {
@@ -20,7 +21,14 @@ type Row = {
   } | null;
 };
 
-export default async function Briefing() {
+export default async function Briefing({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageRaw } = await searchParams;
+  const page = Math.max(1, parseInt(pageRaw ?? "1", 10) || 1);
+  const from = (page - 1) * 15;
   const { data, error } = await supabase()
     .from("analysis_results")
     .select(
@@ -28,12 +36,14 @@ export default async function Briefing() {
     )
     .eq("layer_number", 2)
     .order("created_at", { ascending: false })
-    .limit(15);
+    .range(from, from + 15); // one extra row = "has more"
 
   if (error) {
     return <p className="text-red-700 text-sm">Could not load briefing: {error.message}</p>;
   }
-  const rows = (data ?? []) as unknown as Row[];
+  const all = (data ?? []) as unknown as Row[];
+  const hasMore = all.length > 15;
+  const rows = all.slice(0, 15);
 
   return (
     <div className="space-y-8">
@@ -97,6 +107,7 @@ export default async function Briefing() {
           </div>
         </article>
       ))}
+      <Pager base="/" page={page} hasMore={hasMore} />
     </div>
   );
 }

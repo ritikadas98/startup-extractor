@@ -7,6 +7,7 @@ const items = [
   { href: "/", label: "Briefing" },
   { href: "/companies", label: "Companies" },
   { href: "/search", label: "Search" },
+  { href: "/archive", label: "Archive" },
   { href: "/status", label: "Status" },
 ];
 

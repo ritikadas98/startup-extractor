@@ -374,9 +374,9 @@ From now on this runs automatically every day at 06:00 IST.
 
 ---
 
-## 4. Netlify — put the website on the internet (~10 min)
+## 4. Netlify — DONE 2026-07-14: site is live
 
-The site is built (`web/`, 2026-07-13) and runs locally. To publish it:
+**Live at: https://startup-intel-briefing.netlify.app** (deployed via CLI under ritikadas98). The current deploy is manual — to enable auto-redeploy on every git push (recommended, 2 min): app.netlify.com -> startup-intel-briefing -> Site configuration -> Build & deploy -> Link repository -> pick startup-extractor. Original manual instructions kept below for reference:
 
 1. In your Chrome profile: https://netlify.com → **Sign up with GitHub** (your account).
 2. **Add new site** → **Import an existing project** → **GitHub** → authorize → pick

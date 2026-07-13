@@ -10,3 +10,6 @@ output/reports/*.md
 *service-account*.json
 *credentials*.json
 gcp-*.json
+
+# Local Netlify folder
+.netlify

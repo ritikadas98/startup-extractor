@@ -175,3 +175,48 @@ CREATE TABLE IF NOT EXISTS job_roles (
 -- Roles finder: when careers-page discovery last ran for a company (negative
 -- results are cached too — no re-searching a company for 14 days).
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS careers_checked_at TIMESTAMPTZ;
+
+-- ---------------------------------------------------------------------------
+-- Phase F: public read access for the website (anon/publishable key + RLS).
+-- The site may read analyses, companies, rounds, roles — NEVER article_text
+-- (copyright) and NEVER pipeline_settings. Pipeline connects as table owner,
+-- so RLS does not affect it.
+-- ---------------------------------------------------------------------------
+ALTER TABLE articles              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE funding_rounds        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE investors             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE round_investors       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE founders              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_founders      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analysis_results      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_relationships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_roles             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reports               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE embeddings            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pipeline_settings     ENABLE ROW LEVEL SECURITY;
+
+-- start from zero for the public roles
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+
+-- readable tables (row policies + grants)
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['companies','funding_rounds','investors','round_investors',
+                           'founders','company_founders','analysis_results',
+                           'company_relationships','job_roles','reports']
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS public_read ON %I', t);
+    EXECUTE format('CREATE POLICY public_read ON %I FOR SELECT TO anon, authenticated USING (true)', t);
+    EXECUTE format('GRANT SELECT ON %I TO anon, authenticated', t);
+  END LOOP;
+END $$;
+
+-- articles: row policy yes, but column-restricted grant — article_text excluded
+DROP POLICY IF EXISTS public_read ON articles;
+CREATE POLICY public_read ON articles FOR SELECT TO anon, authenticated USING (true);
+GRANT SELECT (id, url, title, source, published_at, word_count,
+              processing_status, duplicate_of, created_at, fts)
+      ON articles TO anon, authenticated;
+-- embeddings + pipeline_settings: RLS on, no policy, no grant → invisible to public

@@ -84,8 +84,11 @@ NEXT, in order:
    Layer 1 extracts `hiring_signals` per article (added 2026-07-11; older articles lack it).
    REMAINING in Phase E: daily briefing/weekly reports, job-target scoring (100-pt
    rubric), Telegram + Reddit conversation sources (free APIs; X rejected at $200/mo).
-6. Phase F (parallel, after C): minimal 4-page Next.js frontend in `web/` on Netlify
-   (read-only via Supabase anon key + RLS; pages: briefing, companies, company detail, search).
+6. Phase F: **BUILT + verified locally 2026-07-13** — 4-page Next.js 16 app in `web/`
+   (briefing, companies, company detail, search; anon key + RLS, article_text blocked
+   by column grants; JSONB key-order fixed via lib/layers.ts FIELD_ORDER). Note: Next 16
+   params/searchParams are Promises (await them). Remaining: Netlify deploy (checklist §4,
+   needs Ritika's browser).
    MAYBE (user, 2026-07-12): "chat with the knowledge base" via Vertex AI Search — the
    only use for the ₹94.5k GenAI App Builder credit. ON HOLD because the user may move
    projects to a new GCP account in Aug 2026; that credit is billing-account-bound and

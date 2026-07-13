@@ -374,17 +374,26 @@ From now on this runs automatically every day at 06:00 IST.
 
 ---
 
-## 4. Netlify — the website (later, Phase F — skip for now)
+## 4. Netlify — put the website on the internet (~10 min)
 
-The frontend isn't built yet. Once the `web/` folder exists:
+The site is built (`web/`, 2026-07-13) and runs locally. To publish it:
 
-1. In your Chrome profile: https://netlify.com → sign up with your GitHub account.
+1. In your Chrome profile: https://netlify.com → **Sign up with GitHub** (your account).
 2. **Add new site** → **Import an existing project** → **GitHub** → authorize → pick
-   the `startup-intel` repo.
-3. Set **Base directory** to `web/`, then under environment variables add
-   `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (both from Supabase:
-   Project Settings → API).
-4. Deploy.
+   the `startup-extractor` repo.
+3. Settings on the import screen:
+   - **Base directory**: `web`
+   - Build command / publish directory: leave what Netlify auto-detects for Next.js.
+   - **Add environment variables** (button on the same screen), exactly these names:
+
+     | Name | Value |
+     |---|---|
+     | `NEXT_PUBLIC_SUPABASE_URL` | `https://pipuedcvfiwzssrxnsdj.supabase.co` (no `/rest/v1/` suffix) |
+     | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the **publishable** key (Project Settings → API). Never the secret key. |
+
+4. Click **Deploy**. First build takes ~2–3 min; you get a `something.netlify.app` URL.
+   Every future `git push` redeploys automatically.
+5. Verify: the Briefing page shows funding stories; a company page shows analyses.
 
 ---
 

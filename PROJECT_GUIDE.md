@@ -204,7 +204,34 @@ for manual control and catching up.
 
 ---
 
-## 7. Where things stand, and what's next
+## 7. Running it from a different computer
+
+Very little ties the project to any one machine: the code lives on GitHub, the data in
+Supabase, and the daily run on GitHub's cloud. Any computer is just a "driver's seat."
+To set up a new one (~15 min):
+
+1. **Install**: git, Python 3.13. (Node.js only if you'll run the website locally;
+   the Google Cloud CLI only if you'll run analyses from that machine.)
+2. **Get the code**: `gh auth login` as Ritika, then
+   `git clone https://github.com/ritikadas98/startup-extractor.git`
+3. **Recreate the environment**:
+   `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
+4. **Bring the secrets file** — the one thing deliberately NOT in GitHub: copy `.env`
+   (and `web/.env.local` for the site) from the old machine. Transfer privately
+   (AirDrop / password manager) — it contains the database password. Never email/chat.
+5. **Log in to Google** (only needed to run analyses locally):
+   `gcloud auth login` and `gcloud auth application-default login` — Ritika's account.
+
+Notes:
+- Two machines can coexist (status, pause, reading are all safe from both). Just don't
+  run two *analysis* jobs at the same time — they'd grab the same articles twice.
+- Nothing on any single machine is precious: wipe it, and the system keeps running in
+  the cloud; a new control seat is the 15 minutes above.
+- On Ritika's own laptop, the shared-Mac safeguards (per-repo git identity, the
+  `ritika` gcloud configuration) are unnecessary — her machine, her defaults.
+- Pure *reading* needs no setup at all once the site is on Netlify.
+
+## 8. Where things stand, and what's next
 
 **Built and verified:** scrapers (5 sources) · URL + story dedup · 8-layer analysis
 with cost tracking · hiring-signals extraction · daily cloud automation (keyless auth) ·

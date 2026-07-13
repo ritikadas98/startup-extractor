@@ -12,7 +12,10 @@ from database.models import ScrapedArticle, LayerResult
 def get_conn() -> psycopg.Connection:
     if not SUPABASE_DB_URL:
         raise RuntimeError("SUPABASE_DB_URL is not set — copy .env.example to .env and fill it in")
-    return psycopg.connect(SUPABASE_DB_URL, row_factory=dict_row)
+    # keepalives: detect a silently-dead connection in ~1 min instead of hanging forever
+    return psycopg.connect(SUPABASE_DB_URL, row_factory=dict_row,
+                           keepalives=1, keepalives_idle=30,
+                           keepalives_interval=10, keepalives_count=3)
 
 
 def init_db() -> None:

@@ -16,9 +16,12 @@ log = get_logger("vertex")
 @lru_cache(maxsize=1)
 def get_client():
     from google import genai
+    from google.genai import types
     if not GCP_PROJECT_ID:
         raise RuntimeError("GCP_PROJECT_ID is not set — fill in .env")
-    return genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+    # timeout: a hung socket must fail (and be retried) rather than block forever
+    return genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION,
+                        http_options=types.HttpOptions(timeout=180_000))
 
 
 @lru_cache(maxsize=16)

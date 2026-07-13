@@ -2,8 +2,7 @@
 
 ## TL;DR — current state (2026-07-11)
 
-**Setup is DONE except Netlify (§4, waits for the frontend).** Everything is live and
-verified end-to-end:
+**Setup is 100% DONE (2026-07-14).** Everything is live and verified end-to-end:
 
 | What | State |
 |------|-------|
@@ -11,6 +10,7 @@ verified end-to-end:
 | GCP / Vertex AI | ✅ project `startup-extractor`, gcloud config `ritika`, pipeline ran all 8 layers (~₹5/article flash-only) |
 | GCS bucket | ✅ `startup-extractor-batch` (for the backfill later) |
 | GitHub | ✅ private repo `ritikadas98/startup-extractor`, commits authored by Ritika |
+| Website | ✅ LIVE: https://startup-intel-briefing.netlify.app |
 | Daily automation | ✅ GitHub Actions, 06:00 IST, keyless GCP auth (WIF, no key file) |
 | GCP credits | ₹28k general trial credit (**expires 20 Aug 2026** — covers our Gemini usage; burn it on the backfill). ⚠️ The ₹94.5k "GenAI App Builder" credit likely does NOT cover our usage (scoped to Vertex AI Search, per Google support responses) — verify via the credit's terms link; expect ~₹4.5–6.5k/month on the card after 20 Aug |
 

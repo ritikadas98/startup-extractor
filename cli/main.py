@@ -228,7 +228,9 @@ def analyze(article_id: int = typer.Option(None, help="Analyze one specific arti
             if db_errors >= 5:
                 console.print(f"[red]DB unreachable after 5 straight attempts: {e}[/red]")
                 raise
-            console.print(f"[yellow]DB connection dropped — reconnecting ({db_errors}/5)[/yellow]")
+            console.print(f"[yellow]DB connection dropped — retrying in 30s ({db_errors}/5)[/yellow]")
+            import time as _time
+            _time.sleep(30)
     console.print(f"[green]{processed} articles processed[/green], "
                   f"total cost ${total:.4f}")
 

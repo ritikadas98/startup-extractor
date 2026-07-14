@@ -10,11 +10,16 @@ type Company = {
   hq_city: string | null;
   industry: string | null;
   business_model: string | null;
-  funding_rounds: {
-    amount_usd: number | null;
-    stage: string | null;
-    announced_date: string | null;
-  }[];
+  latest_round_date: string | null;
+  latest_stage: string | null;
+  latest_amount_usd: number | null;
+};
+
+const SORTS: Record<string, { label: string; col: string; asc: boolean }> = {
+  recent: { label: "Latest round first", col: "latest_round_date", asc: false },
+  biggest: { label: "Biggest round first", col: "latest_amount_usd", asc: false },
+  added: { label: "Recently added", col: "id", asc: false },
+  name: { label: "Name A–Z", col: "name", asc: true },
 };
 
 function fmtUsd(n: number | null): string {
@@ -34,16 +39,23 @@ function distinct(values: (string | null)[]): string[] {
 export default async function Companies({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; city?: string; industry?: string; stage?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    city?: string;
+    industry?: string;
+    stage?: string;
+    sort?: string;
+  }>;
 }) {
-  const { q, city, industry, stage } = await searchParams;
+  const { q, city, industry, stage, sort: sortRaw } = await searchParams;
+  const sort = SORTS[sortRaw ?? ""] ? (sortRaw as string) : "recent";
   const sb = supabase();
 
   // filter option lists (deduplicated in code — small tables)
   const [cities, industries, stages] = await Promise.all([
-    sb.from("companies").select("hq_city").limit(2000),
-    sb.from("companies").select("industry").limit(2000),
-    sb.from("funding_rounds").select("stage").limit(3000),
+    sb.from("companies_overview").select("hq_city").limit(3000),
+    sb.from("companies_overview").select("industry").limit(3000),
+    sb.from("companies_overview").select("latest_stage").limit(3000),
   ]);
   const cityOpts = [
     ...new Set(
@@ -54,16 +66,12 @@ export default async function Companies({
     ),
   ].sort((a, b) => a.localeCompare(b));
   const industryOpts = distinct((industries.data ?? []).map((r) => r.industry));
-  const stageOpts = distinct((stages.data ?? []).map((r) => r.stage));
+  const stageOpts = distinct((stages.data ?? []).map((r) => r.latest_stage));
 
-  // stage filter needs an inner join so only companies WITH that round stage match
-  const roundsSel = stage
-    ? "funding_rounds!inner(amount_usd, stage, announced_date)"
-    : "funding_rounds(amount_usd, stage, announced_date)";
   let query = sb
-    .from("companies")
-    .select(`id, name, hq_city, industry, business_model, ${roundsSel}`)
-    .order("id", { ascending: false })
+    .from("companies_overview")
+    .select("*")
+    .order(SORTS[sort].col, { ascending: SORTS[sort].asc, nullsFirst: false })
     .limit(200);
   if (q) query = query.ilike("name", `%${q}%`);
   if (city) {
@@ -73,7 +81,7 @@ export default async function Companies({
     query = query.or(ors);
   }
   if (industry) query = query.ilike("industry", `%${industry}%`);
-  if (stage) query = query.eq("funding_rounds.stage", stage);
+  if (stage) query = query.eq("latest_stage", stage);
   const { data, error } = await query;
 
   if (error) {
@@ -88,9 +96,7 @@ export default async function Companies({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Companies</h1>
-        <p className="text-sm text-neutral-600">
-          Every company the pipeline has analyzed, most recently added first.
-        </p>
+        <p className="text-sm text-neutral-600">Every company the pipeline has analyzed.</p>
       </div>
 
       <form className="flex flex-wrap items-center gap-2" action="/companies">
@@ -124,6 +130,13 @@ export default async function Companies({
             </option>
           ))}
         </select>
+        <select name="sort" defaultValue={sort} className={selectCls}>
+          {Object.entries(SORTS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v.label}
+            </option>
+          ))}
+        </select>
         <button className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800">
           Apply
         </button>
@@ -134,7 +147,9 @@ export default async function Companies({
         )}
       </form>
 
-      <p className="text-xs text-neutral-500">{companies.length} companies shown</p>
+      <p className="text-xs text-neutral-500">
+        {companies.length} companies shown · sorted by {SORTS[sort].label.toLowerCase()}
+      </p>
 
       <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
         <table className="w-full text-sm">
@@ -149,35 +164,30 @@ export default async function Companies({
             </tr>
           </thead>
           <tbody>
-            {companies.map((c) => {
-              const latest = [...(c.funding_rounds ?? [])].sort((a, b) =>
-                (b.announced_date ?? "").localeCompare(a.announced_date ?? "")
-              )[0];
-              return (
-                <tr key={c.id} className="border-t border-neutral-100 hover:bg-emerald-50/40">
-                  <td className="px-4 py-2 font-medium">
-                    <Link href={`/companies/${c.id}`} className="text-emerald-800 hover:underline">
-                      {c.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 text-neutral-700">{c.hq_city ?? "—"}</td>
-                  <td className="px-4 py-2 text-neutral-700">{c.industry ?? "—"}</td>
-                  <td className="px-4 py-2 text-neutral-700">{latest?.stage ?? "—"}</td>
-                  <td className="px-4 py-2 tabular-nums text-neutral-700">
-                    {fmtUsd(latest?.amount_usd ?? null)}
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-neutral-700">
-                    {latest?.announced_date
-                      ? new Date(latest.announced_date).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "2-digit",
-                        })
-                      : "—"}
-                  </td>
-                </tr>
-              );
-            })}
+            {companies.map((c) => (
+              <tr key={c.id} className="border-t border-neutral-100 hover:bg-emerald-50/40">
+                <td className="px-4 py-2 font-medium">
+                  <Link href={`/companies/${c.id}`} className="text-emerald-800 hover:underline">
+                    {c.name}
+                  </Link>
+                </td>
+                <td className="px-4 py-2 text-neutral-700">{c.hq_city ?? "—"}</td>
+                <td className="px-4 py-2 text-neutral-700">{c.industry ?? "—"}</td>
+                <td className="px-4 py-2 text-neutral-700">{c.latest_stage ?? "—"}</td>
+                <td className="px-4 py-2 tabular-nums text-neutral-700">
+                  {fmtUsd(c.latest_amount_usd)}
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap text-neutral-700">
+                  {c.latest_round_date
+                    ? new Date(c.latest_round_date).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "2-digit",
+                      })
+                    : "—"}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

@@ -220,3 +220,16 @@ GRANT SELECT (id, url, title, source, published_at, word_count,
               processing_status, duplicate_of, created_at, fts)
       ON articles TO anon, authenticated;
 -- embeddings + pipeline_settings: RLS on, no policy, no grant → invisible to public
+
+-- Companies page: one row per company with its latest round pre-computed, so
+-- the site can sort/filter by round date, size, and stage server-side.
+CREATE OR REPLACE VIEW companies_overview AS
+SELECT c.id, c.name, c.hq_city, c.industry, c.business_model,
+       (SELECT fr.announced_date FROM funding_rounds fr WHERE fr.company_id = c.id
+        ORDER BY fr.announced_date DESC NULLS LAST LIMIT 1) AS latest_round_date,
+       (SELECT fr.stage FROM funding_rounds fr WHERE fr.company_id = c.id
+        ORDER BY fr.announced_date DESC NULLS LAST LIMIT 1) AS latest_stage,
+       (SELECT fr.amount_usd FROM funding_rounds fr WHERE fr.company_id = c.id
+        ORDER BY fr.announced_date DESC NULLS LAST LIMIT 1) AS latest_amount_usd
+FROM companies c;
+GRANT SELECT ON companies_overview TO anon, authenticated;

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { splitCities, canonicalCity, cityVariants } from "@/lib/cities";
+import { SECTORS, sectorPatterns } from "@/lib/industries";
 
 type Company = {
   id: number;
@@ -52,9 +53,8 @@ export default async function Companies({
   const sb = supabase();
 
   // filter option lists (deduplicated in code — small tables)
-  const [cities, industries, stages] = await Promise.all([
+  const [cities, stages] = await Promise.all([
     sb.from("companies_overview").select("hq_city").limit(3000),
-    sb.from("companies_overview").select("industry").limit(3000),
     sb.from("companies_overview").select("latest_stage").limit(3000),
   ]);
   const cityOpts = [
@@ -65,7 +65,7 @@ export default async function Companies({
         .map(canonicalCity)
     ),
   ].sort((a, b) => a.localeCompare(b));
-  const industryOpts = distinct((industries.data ?? []).map((r) => r.industry));
+  const industryOpts = Object.keys(SECTORS).sort((a, b) => a.localeCompare(b));
   const stageOpts = distinct((stages.data ?? []).map((r) => r.latest_stage));
 
   let query = sb
@@ -80,7 +80,14 @@ export default async function Companies({
       .join(",");
     query = query.or(ors);
   }
-  if (industry) query = query.ilike("industry", `%${industry}%`);
+  if (industry) {
+    const pats = sectorPatterns(industry);
+    if (pats) {
+      query = query.or(pats.map((k) => `industry.ilike.%${k}%`).join(","));
+    } else {
+      query = query.ilike("industry", `%${industry}%`);
+    }
+  }
   if (stage) query = query.eq("latest_stage", stage);
   const { data, error } = await query;
 
@@ -115,7 +122,7 @@ export default async function Companies({
           ))}
         </select>
         <select name="industry" defaultValue={industry ?? ""} className={selectCls}>
-          <option value="">All industries</option>
+          <option value="">All sectors</option>
           {industryOpts.map((c) => (
             <option key={c} value={c}>
               {c}

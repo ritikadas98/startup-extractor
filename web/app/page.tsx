@@ -11,6 +11,7 @@ type Row = {
     key_takeaways?: string[];
   };
   company_id: number | null;
+  companies: { hq_city: string | null; industry: string | null } | null;
   created_at: string;
   articles: {
     id: number;
@@ -32,7 +33,7 @@ export default async function Briefing({
   const { data, error } = await supabase()
     .from("analysis_results")
     .select(
-      "result_json, company_id, created_at, articles(id, title, url, source, published_at)"
+      "result_json, company_id, created_at, articles(id, title, url, source, published_at), companies(hq_city, industry)"
     )
     .eq("layer_number", 2)
     .order("created_at", { ascending: false })
@@ -74,6 +75,12 @@ export default async function Briefing({
                   month: "short",
                   year: "numeric",
                 })}
+            {(r.companies?.hq_city || r.companies?.industry) && (
+              <span className="font-semibold text-neutral-800">
+                {" · "}
+                {[r.companies?.hq_city, r.companies?.industry].filter(Boolean).join(" · ")}
+              </span>
+            )}
           </p>
           <p className="mt-3 text-sm leading-relaxed text-neutral-800">
             {r.result_json.one_minute_summary || r.result_json.what_happened}

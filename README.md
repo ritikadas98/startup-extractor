@@ -1,5 +1,7 @@
 # startup_intel
 
+**Live site: https://startup-intel-briefing.netlify.app**
+
 AI-powered knowledge system that converts Indian startup funding news into structured
 business intelligence, PM case studies, and interview-ready insights. Not a news
 aggregator — a compounding personal knowledge base.
@@ -8,8 +10,8 @@ aggregator — a compounding personal knowledge base.
 
 - **Pipeline**: Python 3.13, Typer CLI
 - **Storage**: Supabase Postgres (+ pgvector for semantic search)
-- **Analysis**: Vertex AI Gemini — 8 layers per article
-  (`2.5-flash` for extraction/summary/interview, `2.5-pro` for business/product/investment/PM-learning/frameworks)
+- **Analysis**: Vertex AI Gemini — 8 layers per article (`2.5-flash`, flash-only
+  routing since 2026-07-12; per-layer models configurable in `config/settings.py`)
 - **Automation**: GitHub Actions cron, 06:00 IST daily
 - **Frontend**: minimal Next.js app in `web/` (read-only, Netlify)
 

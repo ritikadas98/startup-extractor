@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { splitCities, canonicalCity, cityVariants } from "@/lib/cities";
 
 type Company = {
   id: number;
@@ -44,7 +45,14 @@ export default async function Companies({
     sb.from("companies").select("industry").limit(2000),
     sb.from("funding_rounds").select("stage").limit(3000),
   ]);
-  const cityOpts = distinct((cities.data ?? []).map((r) => r.hq_city));
+  const cityOpts = [
+    ...new Set(
+      (cities.data ?? [])
+        .flatMap((r) => (r.hq_city ? splitCities(r.hq_city) : []))
+        .filter((c) => c.toLowerCase() !== "unknown")
+        .map(canonicalCity)
+    ),
+  ].sort((a, b) => a.localeCompare(b));
   const industryOpts = distinct((industries.data ?? []).map((r) => r.industry));
   const stageOpts = distinct((stages.data ?? []).map((r) => r.stage));
 
@@ -58,7 +66,12 @@ export default async function Companies({
     .order("id", { ascending: false })
     .limit(200);
   if (q) query = query.ilike("name", `%${q}%`);
-  if (city) query = query.ilike("hq_city", `%${city}%`);
+  if (city) {
+    const ors = cityVariants(city)
+      .map((v) => `hq_city.ilike.%${v}%`)
+      .join(",");
+    query = query.or(ors);
+  }
   if (industry) query = query.ilike("industry", `%${industry}%`);
   if (stage) query = query.eq("funding_rounds.stage", stage);
   const { data, error } = await query;

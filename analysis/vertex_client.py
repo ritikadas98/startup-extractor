@@ -63,7 +63,8 @@ def call_layer(layer_num: int, article_text: str, metadata: dict,
     )
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
-    result = json.loads(response.text)
+    # models occasionally emit U+2016 (‖) where the article had ₹ — normalize
+    result = json.loads(response.text.replace("‖", "₹"))
     usage = response.usage_metadata
     tokens_in = getattr(usage, "prompt_token_count", 0) or 0
     tokens_out = ((getattr(usage, "candidates_token_count", 0) or 0)

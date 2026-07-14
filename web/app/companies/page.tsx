@@ -145,6 +145,7 @@ export default async function Companies({
               <th className="px-4 py-2">Industry</th>
               <th className="px-4 py-2">Latest round</th>
               <th className="px-4 py-2">Amount</th>
+              <th className="px-4 py-2">When</th>
             </tr>
           </thead>
           <tbody>
@@ -164,6 +165,15 @@ export default async function Companies({
                   <td className="px-4 py-2 text-neutral-700">{latest?.stage ?? "—"}</td>
                   <td className="px-4 py-2 tabular-nums text-neutral-700">
                     {fmtUsd(latest?.amount_usd ?? null)}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap text-neutral-700">
+                    {latest?.announced_date
+                      ? new Date(latest.announced_date).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "2-digit",
+                        })
+                      : "—"}
                   </td>
                 </tr>
               );

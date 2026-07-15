@@ -41,6 +41,12 @@ jobs:
         run: |
           python -m cli.main scrape --days 1
           python -m cli.main fetch-text --limit 100
-          python -m cli.main analyze --limit 50
+          # --since guard: never spill into the deferred pre-April archive
+          python -m cli.main analyze --limit 50 --since "$(date -d '90 days ago' +%Y-%m-%d)"
           python -m cli.main embed --limit 100
           python -m cli.main build-graph
+          # job search (both no-op when job_mode is off): rank companies, then
+          # refresh openings for the top-scored ones (--deep is cheap after the
+          # first pass thanks to careers-URL caching + 14-day negative cache)
+          python -m cli.main score-targets
+          python -m cli.main find-roles --limit 15 --deep

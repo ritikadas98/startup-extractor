@@ -81,6 +81,14 @@ NEXT, in order:
    extraction. Results in `job_roles`. Live-tested: Sarvam AI → 64 openings.
    `job_mode` setting off = find-roles refuses + pipeline skips Layer 7 (refill later
    via `analyze --article-id`). NO LinkedIn scraping (ToS).
+   **v2 (2026-07-14, from external review):** `job_target_score` now COMPUTED
+   (`jobs/scoring.py`: tier + stage + freshness + location + live-PM-role + size;
+   `score-targets`, auto-refreshed after find-roles) and find-roles checks companies in
+   score order. PM-class keyword classifier (`jobs/classifier.py` → job_roles.role_class;
+   catches founding-PM/APM/analyst/adjacent, excludes product-marketing/design false
+   hits). `--pm` filter, `--new-since N` (stored-roles daily scan, no fetching),
+   `dismiss-role <id>`, and per-company outreach context (round + amount + date + L3
+   thesis line) in output.
    Layer 1 extracts `hiring_signals` per article (added 2026-07-11; older articles lack it).
    REMAINING in Phase E: daily briefing/weekly reports, job-target scoring (100-pt
    rubric), Telegram + Reddit conversation sources (free APIs; X rejected at $200/mo).

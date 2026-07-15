@@ -217,6 +217,7 @@ def _clean(v):
 
 
 def store_roles(conn, company_id: int, roles: list[dict], kind: str) -> int:
+    from jobs.classifier import classify_title
     n = 0
     for r in roles:
         r["location"] = _clean(r.get("location"))
@@ -225,12 +226,14 @@ def store_roles(conn, company_id: int, roles: list[dict], kind: str) -> int:
             continue
         conn.execute(
             """
-            INSERT INTO job_roles (company_id, title, location, department, url, source_kind)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (company_id, title, location) DO UPDATE SET last_seen = now()
+            INSERT INTO job_roles (company_id, title, location, department, url,
+                                   source_kind, role_class)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (company_id, title, location) DO UPDATE
+                SET last_seen = now(), role_class = EXCLUDED.role_class
             """,
             (company_id, r["title"][:300], r.get("location"), r.get("department"),
-             r.get("url"), kind),
+             r.get("url"), kind, classify_title(r["title"])),
         )
         n += 1
     return n

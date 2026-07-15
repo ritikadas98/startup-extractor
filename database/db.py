@@ -247,11 +247,12 @@ def mark_duplicate(conn: psycopg.Connection, article_id: int, canonical_id: int)
 
 def recently_funded_companies(conn: psycopg.Connection, days: int = 90,
                               limit: int = 10) -> list[dict]:
-    """Companies with a funding round announced/published in the window, newest first."""
-    return conn.execute(
+    """Companies funded in the window, ranked by job_target_score (best fit first)."""
+    rows = conn.execute(
         """
         SELECT DISTINCT ON (c.id) c.id, c.name, c.name_normalized, c.website,
                c.careers_url, c.careers_checked_at, c.hq_city, c.industry,
+               c.job_target_score,
                coalesce(fr.announced_date::timestamptz, a.published_at) AS funded_at
         FROM companies c
         JOIN funding_rounds fr ON fr.company_id = c.id
@@ -261,7 +262,10 @@ def recently_funded_companies(conn: psycopg.Connection, days: int = 90,
         ORDER BY c.id, funded_at DESC
         """,
         (days,),
-    ).fetchall()[:limit]
+    ).fetchall()
+    rows.sort(key=lambda r: (-(r["job_target_score"] or 0),
+                             r["funded_at"] is None and 1 or 0))
+    return rows[:limit]
 
 
 # --- pipeline settings (control switches) ---

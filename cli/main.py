@@ -235,46 +235,141 @@ def analyze(article_id: int = typer.Option(None, help="Analyze one specific arti
                   f"total cost ${total:.4f}")
 
 
+def _company_context(conn, company_id: int) -> str:
+    """One outreach-ready line: latest round + one-line thesis from Layer 3."""
+    from database import db
+    ov = conn.execute(
+        "SELECT latest_stage, latest_amount_usd, latest_round_date "
+        "FROM companies_overview WHERE id = %s", (company_id,)).fetchone()
+    thesis = conn.execute(
+        """
+        SELECT result_json->>'problem_solved' AS t FROM analysis_results
+        WHERE company_id = %s AND layer_number = 3
+        ORDER BY article_id DESC LIMIT 1
+        """, (company_id,)).fetchone()
+    bits = []
+    if ov and (ov["latest_stage"] or ov["latest_amount_usd"]):
+        stage = ov["latest_stage"] if (ov["latest_stage"] or "") not in ("unknown", "") else ""
+        amt = f" ${ov['latest_amount_usd']/1e6:.1f}M" if ov["latest_amount_usd"] else ""
+        when = f" on {ov['latest_round_date']:%d %b}" if ov["latest_round_date"] else ""
+        bits.append(f"raised {stage}{amt}{when}".replace("raised  ", "raised "))
+    if thesis and thesis["t"]:
+        first = thesis["t"].split(". ")[0][:140]
+        bits.append(first)
+    return " · ".join(bits)
+
+
+@app.command("score-targets")
+def score_targets():
+    """Recompute job_target_score for every company (ranking for find-roles)."""
+    from jobs.scoring import recompute_scores
+    from database import db
+    with db.get_conn() as conn:
+        if _gate(conn, "job_mode"):
+            return
+        n = recompute_scores(conn)
+        top = conn.execute(
+            "SELECT name, job_target_score FROM companies "
+            "ORDER BY job_target_score DESC LIMIT 5").fetchall()
+    console.print(f"[green]{n} companies scored.[/green] Top targets:")
+    for t in top:
+        console.print(f"  {t['job_target_score']:.2f}  {t['name']}")
+
+
+@app.command("dismiss-role")
+def dismiss_role(role_id: int = typer.Argument(..., help="Role id shown by find-roles")):
+    """Hide a role from future find-roles output."""
+    from database import db
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "UPDATE job_roles SET dismissed = TRUE WHERE id = %s RETURNING title",
+            (role_id,)).fetchone()
+        conn.commit()
+    console.print(f"[yellow]Dismissed:[/yellow] {row['title']}" if row
+                  else f"[red]No role with id {role_id}[/red]")
+
+
 @app.command("find-roles")
 def find_roles(role: str = typer.Option(None, help="Title keyword filter, e.g. 'product'"),
+               pm: bool = typer.Option(False, "--pm", help="Only PM-class roles (PM/APM/analyst/adjacent)"),
                location: str = typer.Option(None, help="Location keyword, e.g. 'bangalore'"),
                funded_within: int = typer.Option(90, help="Companies funded in the last N days"),
                limit: int = typer.Option(10, help="Max companies to check"),
+               new_since: int = typer.Option(None, "--new-since", help="Only roles FIRST SEEN in the last N days (reads stored roles, no fetching)"),
                deep: bool = typer.Option(False, help="AI-search for careers pages when unknown (~₹3/company)")):
-    """Live job openings at freshly-funded startups (Phase E roles finder)."""
+    """Ranked job openings at freshly-funded startups (best-fit companies first)."""
     from jobs.roles_finder import roles_for_company, store_roles, location_matches
+    from jobs.classifier import classify_title, PM_CLASSES
     from database import db
+
+    def match(title: str, loc: str | None, role_class: str | None) -> bool:
+        if pm and (role_class or classify_title(title)) not in PM_CLASSES:
+            return False
+        if role and role.lower() not in title.lower():
+            return False
+        return location_matches(location, loc)
 
     with db.get_conn() as conn:
         if _gate(conn, "pipeline_enabled", "job_mode"):
             return
+
+        if new_since:
+            rows = conn.execute(
+                """
+                SELECT jr.id, jr.title, jr.location, jr.url, jr.role_class,
+                       c.id AS company_id, c.name, c.hq_city, c.job_target_score
+                FROM job_roles jr JOIN companies c ON c.id = jr.company_id
+                WHERE jr.first_seen >= now() - make_interval(days => %s)
+                  AND NOT jr.dismissed
+                ORDER BY c.job_target_score DESC NULLS LAST, jr.first_seen DESC
+                """, (new_since,)).fetchall()
+            rows = [r for r in rows if match(r["title"], r["location"], r["role_class"])]
+            if not rows:
+                console.print(f"[yellow]No matching roles first seen in the last {new_since} days.[/yellow]")
+                return
+            console.print(f"[bold]{len(rows)} new roles in the last {new_since} days:[/bold]\n")
+            last_co = None
+            for r in rows:
+                if r["company_id"] != last_co:
+                    ctx = _company_context(conn, r["company_id"])
+                    console.print(f"[bold]{r['name']}[/bold] "
+                                  f"[dim](score {r['job_target_score'] or 0:.2f}"
+                                  f"{' · ' + ctx if ctx else ''})[/dim]")
+                    last_co = r["company_id"]
+                loc = f" — {r['location']}" if r["location"] else ""
+                console.print(f"  • [{r['id']}] {r['title']}{loc}")
+            return
+
         companies = db.recently_funded_companies(conn, funded_within, limit)
         if not companies:
             console.print("[yellow]No recently funded companies in that window.[/yellow]")
             raise typer.Exit()
-        console.print(f"Checking {len(companies)} recently funded companies…\n")
+        console.print(f"Checking {len(companies)} best-fit companies "
+                      f"(ranked by job_target_score)…\n")
         shown = 0
         near_misses = []
         for c in companies:
             roles, kind = roles_for_company(conn, dict(c), deep=deep)
             store_roles(conn, c["id"], roles, kind)
             conn.commit()
-            matches = [r for r in roles
-                       if (not role or role.lower() in r["title"].lower())
-                       and location_matches(location, r.get("location"))]
+            matches = [r for r in roles if match(r["title"], r.get("location"), None)]
             if not matches:
                 if roles:
                     near_misses.append(f"{c['name']} ({len(roles)} openings)")
                 continue
             shown += 1
-            console.print(f"[bold]{c['name']}[/bold]  [dim]({c['hq_city'] or '?'} · "
-                          f"funded {c['funded_at']:%d %b} · via {kind})[/dim]")
+            ctx = _company_context(conn, c["id"])
+            console.print(f"[bold]{c['name']}[/bold]  [dim](score {c['job_target_score'] or 0:.2f}"
+                          f" · {c['hq_city'] or '?'}{' · ' + ctx if ctx else ''} · via {kind})[/dim]")
             for r in matches[:10]:
                 loc = f" — {r['location']}" if r.get("location") else ""
                 console.print(f"  • {r['title']}{loc}")
                 if r.get("url"):
                     console.print(f"    [dim]{r['url']}[/dim]")
             console.print()
+        # roles just stored may unlock the +0.5 has_pm_role factor — refresh scores
+        from jobs.scoring import recompute_scores
+        recompute_scores(conn)
         if not shown:
             console.print("[yellow]No open roles matched the filters.[/yellow]")
             if near_misses:

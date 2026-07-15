@@ -233,3 +233,9 @@ SELECT c.id, c.name, c.hq_city, c.industry, c.business_model,
         ORDER BY fr.announced_date DESC NULLS LAST LIMIT 1) AS latest_amount_usd
 FROM companies c;
 GRANT SELECT ON companies_overview TO anon, authenticated;
+
+-- Roles finder v2: PM-class per role (keyword classifier, jobs/classifier.py)
+-- and a dismissed flag so rejected roles stop resurfacing.
+ALTER TABLE job_roles ADD COLUMN IF NOT EXISTS role_class TEXT;
+ALTER TABLE job_roles ADD COLUMN IF NOT EXISTS dismissed BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS idx_job_roles_class ON job_roles(role_class);

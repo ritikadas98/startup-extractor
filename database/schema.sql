@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS articles (
     published_at      TIMESTAMPTZ,
     article_text      TEXT,
     word_count        INTEGER,
-    processing_status TEXT NOT NULL DEFAULT 'pending',  -- pending|fetched|processing|complete|failed|duplicate
+    processing_status TEXT NOT NULL DEFAULT 'pending',  -- pending|fetched|processing|complete|failed|duplicate|reference
     processing_error  TEXT,
     retry_count       INTEGER NOT NULL DEFAULT 0,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),

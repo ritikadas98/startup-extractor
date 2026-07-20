@@ -23,3 +23,9 @@ def load_scrapers(only: str | None = None) -> dict[str, BaseScraper]:
             kwargs["queries"] = spec["queries"]
         scrapers[name] = cls(**kwargs)
     return scrapers
+
+
+def reference_sources() -> set[str]:
+    """Sources whose articles are kept for reading/search only — never AI-analyzed."""
+    cfg = yaml.safe_load(SOURCES_YAML.read_text())["sources"]
+    return {name for name, spec in cfg.items() if spec.get("reference")}

@@ -129,7 +129,10 @@ def backfill_status():
 def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this run")):
     """Download full article text for pending articles."""
     from scrapers.fetch_text import fetch_article_text
+    from scrapers.registry import reference_sources
     from database import db
+
+    ref_sources = reference_sources()
 
     import psycopg as _psycopg
 
@@ -152,6 +155,9 @@ def fetch_text(limit: int = typer.Option(50, help="Max articles to fetch this ru
                     text = fetch_article_text(art["url"])
                     if text:
                         db.set_article_text(conn, art["id"], text)
+                        if art["source"] in ref_sources:
+                            # reading material, not funding news: never analyzed
+                            db.set_article_status(conn, art["id"], "reference")
                         ok += 1
                     else:
                         db.set_article_status(conn, art["id"], "pending",

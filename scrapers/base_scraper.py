@@ -44,8 +44,11 @@ class BaseScraper(ABC):
 
 
 class RSSFeedScraper(BaseScraper):
-    """Generic RSS scraper: subclasses set name + feed_url."""
+    """Generic RSS scraper: subclasses set name + feed_url.
+    Set filter_funding = False for reference sources (newsletters etc.) whose
+    items should all be collected, not screened for funding keywords."""
     feed_url: str = ""
+    filter_funding: bool = True
 
     def __init__(self, feed_url: str | None = None):
         if feed_url:
@@ -65,13 +68,13 @@ class RSSFeedScraper(BaseScraper):
                 continue
             title = e.get("title", "")
             summary = e.get("summary", "")
-            if not looks_like_funding_news(title, summary):
+            if self.filter_funding and not looks_like_funding_news(title, summary):
                 continue
             articles.append(ScrapedArticle(
                 url=e.get("link", ""), title=title, source=self.name,
                 published_at=published, summary=summary,
             ))
-        log.info("%s: %d funding candidates (of %d entries)",
+        log.info("%s: %d candidates (of %d entries)",
                  self.name, len(articles), len(parsed.entries))
         return articles
 

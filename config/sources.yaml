@@ -33,3 +33,10 @@ sources:
     class: ETTechScraper
     enabled: true
     feed_url: "https://economictimes.indiatimes.com/tech/rssfeeds/13357270.cms"
+
+  tldr_product:
+    module: scrapers.tldr_product
+    class: TLDRProductRSS
+    enabled: true
+    feed_url: "https://tldr.tech/api/rss/product"
+    reference: true   # PM-learning content: keep + search, never AI-analyze

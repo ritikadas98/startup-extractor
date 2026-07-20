@@ -27,14 +27,24 @@ export default async function Search({
   let hits: Hit[] = [];
   let error: string | null = null;
 
+  let articleHits: { id: number; title: string; url: string; source: string }[] = [];
   if (q) {
-    const res = await supabase()
-      .from("analysis_results")
-      .select("layer_number, company_id, result_json, articles(title, url, source)")
-      .textSearch("fts", q, { type: "websearch" })
-      .limit(25);
+    const sb = supabase();
+    const [res, artRes] = await Promise.all([
+      sb
+        .from("analysis_results")
+        .select("layer_number, company_id, result_json, articles(title, url, source)")
+        .textSearch("fts", q, { type: "websearch" })
+        .limit(25),
+      sb
+        .from("articles")
+        .select("id, title, url, source")
+        .textSearch("fts", q, { type: "websearch" })
+        .limit(10),
+    ]);
     if (res.error) error = res.error.message;
     hits = (res.data ?? []) as unknown as Hit[];
+    articleHits = (artRes.data ?? []) as any[];
   }
 
   return (
@@ -55,7 +65,7 @@ export default async function Search({
         <button className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm text-white">Search</button>
       </form>
       {error && <p className="text-sm text-red-700">Search failed: {error}</p>}
-      {q && !error && hits.length === 0 && (
+      {q && !error && hits.length === 0 && articleHits.length === 0 && (
         <p className="text-sm text-neutral-600">No results for “{q}”.</p>
       )}
       <div className="space-y-4">
@@ -77,6 +87,23 @@ export default async function Search({
           </div>
         ))}
       </div>
+      {articleHits.length > 0 && (
+        <section>
+          <h2 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-neutral-600">
+            In collected articles
+          </h2>
+          <div className="space-y-2">
+            {articleHits.map((a) => (
+              <div key={a.id} className="rounded-lg border border-neutral-200 bg-white px-4 py-2.5">
+                <a href={a.url} rel="noopener" target="_blank" className="text-sm font-medium text-emerald-800 hover:underline">
+                  {a.title}
+                </a>
+                <span className="ml-2 text-xs text-neutral-500">{a.source}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
